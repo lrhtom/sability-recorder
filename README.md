@@ -1,48 +1,48 @@
-# 引导式会话记录器
+# Guided Session Recorder
 
-一个静态单页工具，用来在可用性测试现场记录数据。观察者在自己的手机或第二块屏幕上开着它，参与者在另一台设备上操作被测系统。
+A single static page for recording usability sessions live. The observer keeps it open on a phone or a second screen while the participant works on the system under test.
 
-**在线地址**：https://lrhtom.github.io/usability-recorder/
+**Live:** https://lrhtom.github.io/usability-recorder/
 
-## 它记什么
+## What it records
 
-五个固定任务，每个任务记四个量：
+Five fixed tasks. Four measures per task:
 
-- **完成情况** —— 由提示级别推出：L0 独立成功 · L1/L2 提示后成功 · L3 或超时判失败
-- **用时** —— 内置秒表，5 分钟上限，到点变红
-- **走错次数** —— 点错按钮、进错页面、重复提交，各算一次
-- **关键事件原话** —— 逐字记
+- **Outcome** — derived from the hint level: L0 independent · L1/L2 with hint · L3 or timeout counts as failed
+- **Time on task** — built-in stopwatch, five-minute cap, turns red at the limit
+- **Wrong turns** — wrong button, wrong page, duplicate submit; one each
+- **Verbatim quote** — the participant's actual words
 
-会后三个口头问题，然后一键导出 Markdown 表格加 JSON。
+Then three spoken debrief questions, and a one-tap export to a Markdown table plus JSON.
 
-## 怎么用
+## Running a session
 
-1. 打开网页，填个名字（只用来区分场次）
-2. 逐字念开场白，然后逐个任务走
-3. 每个任务：念脚本 → 开始计时 → 观察 → 记走错次数 → 选提示级别 → 记原话 → 下一个
-4. 收尾页填三个 debrief 问题，点「复制这一场」
-5. 五场跑完，回准备页点「导出全部」
+1. Open the page, type a name (it only separates one session from another)
+2. Read the opening script word for word
+3. Per task: read the script, start the timer, observe, tally wrong turns, set the hint level, record the quote, move on
+4. On the wrap screen, answer the three debrief questions and hit **Copy this session**
+5. After all five, return to Setup and hit **Export all**
 
-## 数据在哪
+## Where the data lives
 
-全部存在浏览器的 `localStorage` 里，**不上传任何地方**，没有后端也没有请求。换设备或清缓存就没了，所以每场跑完当场导出。
+In `localStorage` on that one device. Nothing is uploaded; there is no backend and no network request of any kind. Switching device or clearing the cache loses it, so export every session as soon as it ends.
 
-名字只是本机的区分标签。数据进论文时换成 P1 到 P5。
+The name is a local label only. It becomes P1 to P5 before the data reaches the write-up.
 
-## 提示阶梯
+## Hint ladder
 
-不可跳级，每级给完等 30 秒再判断是否升级。
+No skipping levels. Wait 30 seconds after each hint before deciding to escalate.
 
-| 级别 | 说什么 | 记作 |
+| Level | What the observer says | Recorded as |
 |---|---|---|
-| L0 | 什么都不说 | 独立成功 |
-| L1 | 「这个页面上还有别的地方可以看看。」 | 提示后成功 |
-| L2 | 「试试左边的导航栏。」（指方向，不指按钮） | 提示后成功 |
-| L3 | 直接演示 | 失败 |
-| — | 满 5 分钟 | 失败 |
+| L0 | nothing | Independent |
+| L1 | "There is somewhere else on this page worth looking at." | With hint |
+| L2 | "Try the navigation on the left." (a direction, never the button) | With hint |
+| L3 | demonstrate it | Failed |
+| — | five minutes elapsed | Failed |
 
-不要说「对」「不对」「你点错了」，也不要用表情或声音提示。
+Never say "yes", "no", or "you clicked the wrong thing". No prompting by tone or expression either.
 
-## 技术
+## Build
 
-单个 `index.html`，无依赖、无构建、无外部请求。跟随系统深浅色主题。手机端可用。
+One `index.html`. No dependencies, no build step, no external requests. Follows the system light or dark theme. Works on a phone.
