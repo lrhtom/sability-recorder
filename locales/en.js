@@ -91,7 +91,24 @@ window.__RES.en = {
     btnCopyTable: "Copy the table",
     btnSeeTotals: "See totals →",
     saved: "Saved",
-    adminLink: "Analysis page →"
+    adminLink: "Analysis page →",
+
+    thTask: "Task",
+    thFailed: "Failed",
+    thMedianShort: "Median",
+    thName: "Name",
+    thId: "ID",
+    langSwitch: "ZH",
+
+    expCap1: "*Table 7.10 — Guided usability sessions, n = {{n}}. Success is coded independently",
+    expCap2: "(no hint), with hint (levels 1 to 2), or failed (demonstrated or five-minute timeout).*",
+    expHead: "| Task | Independent | With hint | Failed | Median time | Wrong turns |",
+    expSessHead: "| Task | Outcome | Time | Wrong turns | Hint | Verbatim |",
+    expRange: "Time range per task, fastest to slowest:",
+    expParticipants: "Participants, in the order reported:",
+    expVerbatimH: "**Verbatim, grouped by task**",
+    expDebriefH: "**Debrief, grouped by question**",
+    expDebriefLabel: "**Debrief**"
   },
 
   script: {

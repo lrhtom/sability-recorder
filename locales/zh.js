@@ -52,7 +52,7 @@ window.__RES.zh = {
     outNotRecorded: "未记录",
 
     wrapTag: "收尾",
-    wrapEyebrow: "口头 debrief · 5 分钟",
+    wrapEyebrow: "口头回访 · 5 分钟",
     wrapHeading: "三个问题，记原话",
     wrapNote: "不要让参与者填站内问卷。那份样本已经封存，多几行会让已核对过数据库的统计对不上。",
     debriefPlaceholder: "记原话",
@@ -89,7 +89,24 @@ window.__RES.zh = {
     btnCopyTable: "复制表格",
     btnSeeTotals: "看汇总 →",
     saved: "已存",
-    adminLink: "分析页 →"
+    adminLink: "分析页 →",
+
+    thTask: "任务",
+    thFailed: "失败",
+    thMedianShort: "中位数",
+    thName: "姓名",
+    thId: "编号",
+    langSwitch: "EN",
+
+    expCap1: "*表 7.10：引导式可用性会话，n = {{n}}。完成情况分三类，",
+    expCap2: "独立成功（无提示）、提示后成功（L1 至 L2）、失败（需演示或满 5 分钟）。*",
+    expHead: "| 任务 | 独立成功 | 提示后成功 | 失败 | 用时中位数 | 走错次数 |",
+    expSessHead: "| 任务 | 完成情况 | 用时 | 走错 | 提示 | 原话 |",
+    expRange: "各任务用时区间，最快到最慢：",
+    expParticipants: "参与者，按报告顺序：",
+    expVerbatimH: "**按任务归拢的原话**",
+    expDebriefH: "**按问题归拢的回访**",
+    expDebriefLabel: "**回访**"
   },
 
   script: {
@@ -150,12 +167,12 @@ window.__RES.zh = {
     onThisDevice: "本机",
     merged: "已并入",
     pasteHeading: "粘贴另一台设备的记录",
-    pasteNote: "会话存在录它的那个浏览器里，手机和笔记本各存各的。把另一台的导出粘到这里，两边就能一起算。整段 Markdown 或者纯 JSON 都认。",
-    pastePlaceholder: "把导出的记录粘在这里，JSON 或整段 Markdown 都行",
+    pasteNote: "会话存在录它的那个浏览器里，手机和笔记本各存各的。把另一台的导出粘到这里，两边就能一起算。整段导出文本或者纯数据都认。",
+    pastePlaceholder: "把导出的记录粘在这里，整段或纯数据都行",
     mergeBtn: "并入",
     clearMerged: "清掉并入的",
     mergedOk_other: "并入 {{count}} 场。",
-    mergedNone: "没认出可用的记录。导出里带一段 JSON，整块粘过来。",
+    mergedNone: "没认出可用的记录。导出末尾带一段数据块，整块粘过来。",
 
     noData: "还没有记录。跑一场，或者粘一份别的设备的导出进来。",
     perTaskHeading: "按任务",
@@ -164,12 +181,12 @@ window.__RES.zh = {
     tasksDone: "已记任务",
     totalTime: "总用时",
     quotesHeading: "按任务归拢的原话",
-    debriefHeading: "按问题归拢的 debrief",
+    debriefHeading: "按问题归拢的回访",
     exportHeading: "可直接粘走",
     exportTable: "表 7.10 加质性材料",
-    exportJson: "全部记录的 JSON",
+    exportJson: "全部记录的数据",
     copyTable: "复制表格",
-    copyJson: "复制 JSON",
+    copyJson: "复制数据",
     copied: "已复制",
 
     thMin: "最快",

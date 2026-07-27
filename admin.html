@@ -57,8 +57,7 @@
     interpolation: { escapeValue: false }
   });
   function t(k, o) { return i18next.t(k, o); }
-  var tEn = i18next.getFixedT("en");
-  function otherName() { return i18next.getFixedT(i18next.language === "en" ? "zh" : "en")("ui:langName"); }
+  // Exports follow the interface language: one language per rendering, never mixed.
 
   // ---------- helpers ----------
   function esc(x) { return String(x).replace(/[&<>"]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
@@ -188,7 +187,7 @@
     el("mTitle").textContent = t("title");
     el("mSub").textContent = t("sub");
     var lb = el("langBtn");
-    lb.textContent = otherName();
+    lb.textContent = t("ui:langSwitch");
     lb.onclick = function () {
       var next = i18next.language === "en" ? "zh" : "en";
       i18next.changeLanguage(next, function () {
@@ -302,8 +301,8 @@
     el("panel").innerHTML = sources +
       '<div class="card">' +
         '<p class="eyebrow"><span class="tag">' + t("perTaskHeading") + '</span> n = ' + a.n + '</p>' +
-        '<div class="tblwrap"><table class="agg"><thead><tr><th>Task</th>' +
-          '<th>' + t("ui:outIndependent") + '</th><th>' + t("ui:outWithHint") + '</th><th>Failed</th>' +
+        '<div class="tblwrap"><table class="agg"><thead><tr><th>' + t("ui:thTask") + '</th>' +
+          '<th>' + t("ui:outIndependent") + '</th><th>' + t("ui:outWithHint") + '</th><th>' + t("ui:thFailed") + '</th>' +
           '<th>' + t("thMin") + '</th><th>' + t("thMedian") + '</th><th>' + t("thMax") + '</th>' +
           '<th>' + t("thWrong") + '</th></tr></thead><tbody>' + perTask + '</tbody></table></div>' +
         '<p class="note">' + t("interpret") + '</p>' +
@@ -315,14 +314,14 @@
         '<div class="legend">' +
           '<span><i style="background:var(--ok)"></i>' + t("ui:outIndependent") + '</span>' +
           '<span><i style="background:var(--warn)"></i>' + t("ui:outWithHint") + '</span>' +
-          '<span><i style="background:var(--bad)"></i>Failed</span>' +
+          '<span><i style="background:var(--bad)"></i>' + t("ui:thFailed") + '</span>' +
           '<span><i style="background:var(--rule)"></i>' + t("ui:outNotRecorded") + '</span>' +
         '</div>' +
       '</div>' +
 
       '<div class="card">' +
         '<p class="eyebrow"><span class="tag">' + t("peopleHeading") + '</span></p>' +
-        '<div class="tblwrap"><table class="people"><thead><tr><th>Name</th><th>ID</th>' +
+        '<div class="tblwrap"><table class="people"><thead><tr><th>' + t("ui:thName") + '</th><th>' + t("ui:thId") + '</th>' +
           '<th>' + t("thTasks") + '</th><th>' + t("thTime") + '</th><th>' + t("thWrong") + '</th>' +
         '</tr></thead><tbody>' + people + '</tbody></table></div>' +
       '</div>' +
@@ -379,41 +378,41 @@
 
   function markdown(a) {
     var L = [];
-    L.push("*Table 7.10 — Guided usability sessions, n = " + a.n + ". Success is coded independently");
-    L.push("(no hint), with hint (levels 1 to 2), or failed (demonstrated or five-minute timeout).*");
+    L.push(t("ui:expCap1", { n: a.n }));
+    L.push(t("ui:expCap2"));
     L.push("");
-    L.push("| Task | Independent | With hint | Failed | Median time | Wrong turns |");
+    L.push(t("ui:expHead"));
     L.push("|---|:---:|:---:|:---:|---:|---:|");
     a.rows.forEach(function (r) {
-      L.push("| " + r.id + " " + tEn("task:" + r.id + "_name") + " | " +
+      L.push("| " + r.id + " " + t("task:" + r.id + "_name") + " | " +
         r.ind + " of " + a.n + " | " + r.hint + " of " + a.n + " | " + r.fail + " of " + a.n + " | " +
         (r.med === null ? "—" : r.med + " s") + " | " + r.wrong + " |");
     });
     L.push("");
-    L.push("Time range per task (fastest to slowest):");
+    L.push(t("ui:expRange"));
     a.rows.forEach(function (r) {
       if (r.min === null) return;
       L.push("- " + r.id + ": " + r.min + " s to " + r.max + " s");
     });
     L.push("");
-    L.push("Participants, in the order reported: " +
+    L.push(t("ui:expParticipants") + " " +
       a.people.map(function (p, i) { return "P" + (i + 1) + " = " + p.name; }).join(", "));
     L.push("");
-    L.push("**Verbatim, grouped by task**");
+    L.push(t("ui:expVerbatimH"));
     a.rows.forEach(function (r) {
       if (!r.quotes.length) return;
       L.push("");
-      L.push("- **" + r.id + " " + tEn("task:" + r.id + "_name") + "**");
+      L.push("- **" + r.id + " " + t("task:" + r.id + "_name") + "**");
       r.quotes.forEach(function (q) {
         var i = a.names.indexOf(q.who);
         L.push("  - P" + (i + 1) + ": " + q.text.replace(/\n/g, " "));
       });
     });
     L.push("");
-    L.push("**Debrief, grouped by question**");
+    L.push(t("ui:expDebriefH"));
     DEBRIEF_KEYS.forEach(function (k) {
       L.push("");
-      L.push("- **" + tEn("task:debrief_" + k) + "**");
+      L.push("- **" + t("task:debrief_" + k) + "**");
       a.names.forEach(function (n, i) {
         var v = (a.all[n].debrief[k] || "").replace(/\n/g, " ").trim();
         if (v) L.push("  - P" + (i + 1) + ": " + v);

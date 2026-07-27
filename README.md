@@ -92,7 +92,9 @@ Three namespaces keep the concerns apart:
 
 `script` is separate on purpose. Those sentences are spoken to a real person and have to stay identical across all five sessions, so they are the one thing that must never be casually reworded.
 
-Each task card shows the script in the current language with the other language directly underneath, because the record wants English while the participant may want Chinese.
+**One language per rendering, never mixed.** English shows only English and Chinese shows only Chinese, including table headers, the outcome labels and the exported text. To read a task aloud in the other language, switch the toggle. Only language-neutral tokens stay put: task ids `T1`–`T5`, hint levels `L0`–`L3`, participant labels `P1`–`Pn`, timings and `n`.
+
+A consequence worth knowing: **the export follows the interface language too.** Run the sessions in whichever language suits the participants, and translate the task names once when the table reaches the write-up. The `outcome` field inside the JSON block stays in stable English codes so a merge across languages still aggregates correctly.
 
 Adding a language: copy `locales/en.js`, translate the values, register it in the `resources` map in `index.html`, and add it to the toggle. The library is vendored rather than loaded from a CDN so a session survives the venue wifi dropping.
 

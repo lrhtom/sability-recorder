@@ -56,11 +56,7 @@
   });
 
   function t(k, o) { return i18next.t(k, o); }
-  // Exports are always English so the record drops straight into the write-up,
-  // whatever language the interface happens to be showing.
-  var tEn = i18next.getFixedT("en");
-  function tOther(k, o) { return i18next.getFixedT(i18next.language === "en" ? "zh" : "en")(k, o); }
-  function otherCode() { return i18next.language === "en" ? "ZH" : "EN"; }
+  // Exports follow the interface language: one language per rendering, never mixed.
 
   function setLang(code) {
     i18next.changeLanguage(code, function () {
@@ -159,7 +155,7 @@
     document.getElementById("mSub").textContent = t("appSub");
     document.getElementById("who").textContent = s.name ? (s.name + " · " + s.date) : "";
     var lb = document.getElementById("langBtn");
-    lb.textContent = tOther("langName");
+    lb.textContent = t("langSwitch");
     lb.onclick = function () { setLang(i18next.language === "en" ? "zh" : "en"); };
     renderRail();
     if (step === 0) renderSetup();
@@ -210,7 +206,6 @@
         '<p class="eyebrow"><span class="tag">' + t("readAloudTag") + '</span> ' + t("sameWords") + '</p>' +
         '<div class="script"><span class="lab">' + t("openingLabel") + '</span>' +
           '<p class="small">' + t("script:opening") + '</p>' +
-          '<div class="alt"><span class="code">' + otherCode() + '</span>' + tOther("script:opening") + '</div>' +
         '</div>' +
       '</div>' +
 
@@ -267,7 +262,6 @@
         '<h2>' + esc(t("task:" + id + "_name")) + '</h2>' +
         '<div class="script"><span class="lab">' + t("readToParticipant") + '</span>' +
           '<p>' + esc(t("script:" + id)) + '</p>' +
-          '<div class="alt"><span class="code">' + otherCode() + '</span>' + esc(tOther("script:" + id)) + '</div>' +
         '</div>' +
         '<div class="crit">' +
           '<div><b>' + t("success") + '</b><span>' + esc(t("task:" + id + "_pass")) + '</span></div>' +
@@ -384,8 +378,8 @@
         '<p class="eyebrow"><span class="tag">' + t("analysisTag") + '</span> ' + t("analysisEyebrow") + ' · n = ' + a.n + '</p>' +
         '<h2>' + t("analysisHeading") + '</h2>' +
         '<div class="tblwrap"><table class="agg"><thead><tr>' +
-          '<th>Task</th><th>' + t("outIndependent") + '</th><th>' + t("outWithHint") + '</th>' +
-          '<th>Failed</th><th>Median</th><th>' + t("wrongTurns") + '</th>' +
+          '<th>' + t("thTask") + '</th><th>' + t("outIndependent") + '</th><th>' + t("outWithHint") + '</th>' +
+          '<th>' + t("thFailed") + '</th><th>' + t("thMedianShort") + '</th><th>' + t("wrongTurns") + '</th>' +
         '</tr></thead><tbody>' + body + '</tbody></table></div>' +
         '<p class="note">' + t("analysisNote") + '</p>' +
       '</div>' +
@@ -396,31 +390,31 @@
 
   function aggMarkdown(a) {
     var L = [];
-    L.push("*Table 7.10 — Guided usability sessions, n = " + a.n + ". Success is coded independently (no hint),");
-    L.push("with hint (levels 1 to 2), or failed (demonstrated or five-minute timeout). Times are medians.*");
+    L.push(t("expCap1", { n: a.n }));
+    L.push(t("expCap2"));
     L.push("");
-    L.push("| Task | Independent | With hint | Failed | Median time | Wrong turns |");
+    L.push(t("expHead"));
     L.push("|---|:---:|:---:|:---:|---:|---:|");
     a.rows.forEach(function (r) {
-      L.push("| " + r.id + " " + tEn("task:" + r.id + "_name") + " | " +
+      L.push("| " + r.id + " " + t("task:" + r.id + "_name") + " | " +
         r.ind + " of " + a.n + " | " + r.hint + " of " + a.n + " | " + r.fail + " of " + a.n + " | " +
         (r.med === null ? "—" : r.med + " s") + " | " + r.wrong + " |");
     });
     L.push("");
-    L.push("Sessions: " + a.names.join(", ") + " (reported as P1 to P" + a.n + ")");
+    L.push(t("expParticipants") + " " + a.names.map(function (n, i) { return "P" + (i + 1) + " = " + n; }).join(", "));
     L.push("");
-    L.push("**Verbatim, grouped by task**");
+    L.push(t("expVerbatimH"));
     a.rows.forEach(function (r) {
       if (!r.quotes.length) return;
       L.push("");
-      L.push("- **" + r.id + " " + tEn("task:" + r.id + "_name") + "**");
+      L.push("- **" + r.id + " " + t("task:" + r.id + "_name") + "**");
       r.quotes.forEach(function (q) { L.push("  - " + q.who + ": " + q.text.replace(/\n/g, " ")); });
     });
     L.push("");
-    L.push("**Debrief, grouped by question**");
+    L.push(t("expDebriefH"));
     DEBRIEF_KEYS.forEach(function (k) {
       L.push("");
-      L.push("- **" + tEn("task:debrief_" + k) + "**");
+      L.push("- **" + t("task:debrief_" + k) + "**");
       a.names.forEach(function (n) {
         var v = (a.all[n].debrief[k] || "").replace(/\n/g, " ").trim();
         if (v) L.push("  - " + n + ": " + v);
@@ -433,18 +427,18 @@
     var L = [];
     L.push("## " + (r.name || "?") + " · " + r.date);
     L.push("");
-    L.push("| Task | Outcome | Time | Wrong turns | Hint | Verbatim |");
+    L.push(t("expSessHead"));
     L.push("|---|---|---:|---:|---|---|");
     IDS.forEach(function (id, i) {
       var x = r.tasks[i], o = outcome(x);
-      L.push("| " + id + " " + tEn("task:" + id + "_name") + " | " + o.en + " | " + liveSecs(x) + " s | " +
+      L.push("| " + id + " " + t("task:" + id + "_name") + " | " + o.label + " | " + liveSecs(x) + " s | " +
              x.wrong + " | " + (x.hint === null ? "—" : "L" + x.hint) + " | " +
              ((x.quote || "").replace(/\n/g, " ").replace(/\|/g, "/") || "—") + " |");
     });
     L.push("");
-    L.push("**Debrief**");
+    L.push(t("expDebriefLabel"));
     DEBRIEF_KEYS.forEach(function (k) {
-      L.push("- " + tEn("task:debrief_" + k) + "  " + ((r.debrief[k] || "").replace(/\n/g, " ") || "—"));
+      L.push("- " + t("task:debrief_" + k) + "  " + ((r.debrief[k] || "").replace(/\n/g, " ") || "—"));
     });
     L.push("");
     L.push("```json");
