@@ -185,6 +185,9 @@ window.__RES.en = {
     lock: "Lock",
     wrong: "That is not it.",
     noCrypto: "This browser cannot hash the passphrase. Open the page over https rather than from disk.",
+    noStorage: "This browser is refusing to remember the unlock. Private browsing or a block-all-cookies setting will do that. The page still works for now.",
+    showPass: "Show",
+    hidePass: "Hide",
 
     sourcesHeading: "Records on this device",
     onThisDevice: "sessions stored",

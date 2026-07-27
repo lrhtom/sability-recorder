@@ -261,3 +261,8 @@ table.detail td.oc-none{color:var(--ink-3);}
 .wipeconfirm .yes:focus-visible,.wipeconfirm .no:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 .seg.two{grid-template-columns:repeat(2,1fr);}
 .seg.two button[aria-pressed="true"][data-ok="0"]{background:var(--bad);border-color:var(--bad);}
+.pwrow{display:flex;gap:8px;align-items:stretch;margin-bottom:12px;}
+.pwrow input{margin-bottom:0;}
+.peek{appearance:none;cursor:pointer;background:var(--sunk);border:1px solid var(--rule);border-radius:3px;color:var(--ink-2);font-family:var(--f-ui);font-size:13px;padding:0 14px;white-space:nowrap;}
+.peek:hover{border-color:var(--ink-3);color:var(--ink);}
+.peek:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}

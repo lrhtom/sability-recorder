@@ -34,6 +34,19 @@
   // and paste the result below. See README for why this is a gate and not a lock.
   var PASS_SHA256 = "ac572d7cfde6e1429c979d6aeef6d0be9bde5b7e39db2c61663761be38d9cd7e";
 
+  // Private windows and block-all-cookies settings make sessionStorage throw on
+  // access, which would otherwise make the gate impossible to pass at all.
+  var memUnlocked = false, storageBlocked = false;
+  function isUnlocked() {
+    try { return sessionStorage.getItem(UNLOCK_KEY) === "1" || memUnlocked; }
+    catch (e) { storageBlocked = true; return memUnlocked; }
+  }
+  function setUnlocked(v) {
+    memUnlocked = v;
+    try { if (v) sessionStorage.setItem(UNLOCK_KEY, "1"); else sessionStorage.removeItem(UNLOCK_KEY); }
+    catch (e) { storageBlocked = true; }
+  }
+
   var KEY = "usability_recorder_v1";
   var LANG_KEY = "usability_recorder_lang";
   var UNLOCK_KEY = "usability_recorder_admin";
@@ -218,15 +231,15 @@
       });
     };
     var kb = el("lockBtn");
-    var open = sessionStorage.getItem(UNLOCK_KEY) === "1";
+    var open = isUnlocked();
     kb.style.display = open ? "" : "none";
     kb.textContent = t("lock");
-    kb.onclick = function () { sessionStorage.removeItem(UNLOCK_KEY); render(); };
+    kb.onclick = function () { setUnlocked(false); render(); };
   }
 
   function render() {
     paintChrome();
-    if (sessionStorage.getItem(UNLOCK_KEY) === "1") renderBoard();
+    if (isUnlocked()) renderBoard();
     else renderGate();
   }
 
@@ -236,24 +249,43 @@
         '<p class="lockmark">🔒</p>' +
         '<h2>' + t("gateHeading") + '</h2>' +
         '<p class="meta">' + t("gateNote") + '</p>' +
-        '<input type="password" id="pw" placeholder="' + esc(t("passPlaceholder")) + '" autocomplete="off">' +
+        '<div class="pwrow">' +
+          '<input type="password" id="pw" placeholder="' + esc(t("passPlaceholder")) + '" autocomplete="off" ' +
+            'autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="text">' +
+          '<button class="peek" type="button" id="peek">' + t("showPass") + '</button>' +
+        '</div>' +
         '<button class="btn wide" type="button" id="go" style="width:100%">' + t("unlock") + '</button>' +
         '<p class="err" id="err"></p>' +
       '</div>';
 
     var attempt = async function () {
-      var h = await sha256(el("pw").value);
+      // Phone keyboards add stray spaces, and a paste often brings one along.
+      var typed = (el("pw").value || "").trim();
+      var h = await sha256(typed);
       if (h === null) { el("err").textContent = t("noCrypto"); return; }
-      if (h === PASS_SHA256) { sessionStorage.setItem(UNLOCK_KEY, "1"); render(); }
-      else { el("err").textContent = t("wrong"); el("pw").select(); }
+      if (h !== PASS_SHA256) { el("err").textContent = t("wrong"); el("pw").select(); return; }
+      setUnlocked(true);
+      render();
+      if (storageBlocked) {
+        var w = el("storageWarn");
+        if (w) { w.textContent = t("noStorage"); w.style.display = "block"; }
+      }
     };
     el("go").onclick = attempt;
     el("pw").onkeydown = function (e) { if (e.key === "Enter") attempt(); };
+    var peek = el("peek");
+    peek.onclick = function () {
+      var f = el("pw"), hidden = f.type === "password";
+      f.type = hidden ? "text" : "password";
+      peek.textContent = hidden ? t("hidePass") : t("showPass");
+      f.focus();
+    };
     el("pw").focus();
   }
 
   function renderBoard() {
     var a = aggregate();
+    var warn = '<p class="note" id="storageWarn" style="display:none;color:var(--warn)"></p>';
 
     var sources =
       '<div class="card">' +
@@ -267,7 +299,7 @@
             '<button class="btn" type="button" id="doImport">' + t("importBtn") + '</button>' +
           '</div>' +
           '<p class="status" id="mstat"></p>' +
-        '</div>' +
+        '</div>' + warn +
       '</div>';
 
     if (!a.n) {

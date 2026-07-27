@@ -183,6 +183,9 @@ window.__RES.zh = {
     lock: "锁上",
     wrong: "不对。",
     noCrypto: "这个浏览器算不了哈希。用 https 打开，别从本地文件直接开。",
+    noStorage: "这个浏览器不肯记住解锁状态。无痕模式或者「阻止所有 Cookie」都会这样。本页现在仍然可用。",
+    showPass: "显示",
+    hidePass: "隐藏",
 
     sourcesHeading: "本机的记录",
     onThisDevice: "场已存",
