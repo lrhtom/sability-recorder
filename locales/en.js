@@ -90,7 +90,8 @@ window.__RES.en = {
     btnCopied: "Copied",
     btnCopyTable: "Copy the table",
     btnSeeTotals: "See totals →",
-    saved: "Saved"
+    saved: "Saved",
+    adminLink: "Analysis page →"
   },
 
   script: {
@@ -134,5 +135,53 @@ window.__RES.en = {
     debrief_stuck: "Which step was the most frustrating?",
     debrief_useful: "Which part of this would actually help your IELTS preparation?",
     debrief_change: "If you could change one thing, what would it be?"
+  },
+
+  admin: {
+    title: "Analysis",
+    sub: "Admin",
+    gateHeading: "Enter the passphrase",
+    gateNote: "This gate stops someone picking up an unlocked phone from reading session notes. It is not encryption, and it is not protecting anything from the network, because nothing here is ever sent anywhere.",
+    passPlaceholder: "passphrase",
+    unlock: "Unlock",
+    lock: "Lock",
+    wrong: "That is not it.",
+    noCrypto: "This browser cannot hash the passphrase. Open the page over https rather than from disk.",
+
+    sourcesHeading: "Where the records come from",
+    onThisDevice: "on this device",
+    merged: "merged in",
+    pasteHeading: "Paste records from another device",
+    pasteNote: "Sessions live in the browser that recorded them, so a phone and a laptop hold separate sets. Paste an export from the other device here and both get analysed together. Either the whole Markdown export or the raw JSON works.",
+    pastePlaceholder: "Paste the exported record here, JSON or the whole Markdown block",
+    mergeBtn: "Merge",
+    clearMerged: "Clear merged",
+    mergedOk_one: "Merged {{count}} session.",
+    mergedOk_other: "Merged {{count}} sessions.",
+    mergedNone: "Nothing recognisable in there. The export contains a JSON block; paste it whole.",
+
+    noData: "No records yet. Run a session, or paste an export from another device.",
+    perTaskHeading: "By task",
+    outcomeHeading: "Where people got through, and where they did not",
+    peopleHeading: "By participant",
+    tasksDone: "tasks recorded",
+    totalTime: "total time",
+    quotesHeading: "Verbatim, grouped by task",
+    debriefHeading: "Debrief, grouped by question",
+    exportHeading: "Ready to paste",
+    exportTable: "Table 7.10 and the qualitative material",
+    exportJson: "All records as JSON",
+    copyTable: "Copy the table",
+    copyJson: "Copy the JSON",
+    copied: "Copied",
+
+    thMin: "Fastest",
+    thMax: "Slowest",
+    thMedian: "Median",
+    thTasks: "Tasks",
+    thTime: "Time",
+    thWrong: "Wrong turns",
+
+    interpret: "Five participants is a sample for finding problems, not for measuring rates. Read the counts as counts. A task where two of five needed a hint is worth writing about; the difference between two and three of five is not."
   }
 };

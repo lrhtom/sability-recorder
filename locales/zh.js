@@ -88,7 +88,8 @@ window.__RES.zh = {
     btnCopied: "已复制",
     btnCopyTable: "复制表格",
     btnSeeTotals: "看汇总 →",
-    saved: "已存"
+    saved: "已存",
+    adminLink: "分析页 →"
   },
 
   script: {
@@ -132,5 +133,52 @@ window.__RES.zh = {
     debrief_stuck: "刚才哪一步最让你卡？",
     debrief_useful: "这个系统哪一部分你觉得对备考真的有用？",
     debrief_change: "如果只能改一个地方，你改哪里？"
+  },
+
+  admin: {
+    title: "分析",
+    sub: "管理员",
+    gateHeading: "输入口令",
+    gateNote: "这道门只挡一件事：别人捡到你没锁屏的手机，随手翻看会话记录。它不是加密，也拦不住网络上的谁，因为这里的数据本来就从不外发。",
+    passPlaceholder: "口令",
+    unlock: "解锁",
+    lock: "锁上",
+    wrong: "不对。",
+    noCrypto: "这个浏览器算不了哈希。用 https 打开，别从本地文件直接开。",
+
+    sourcesHeading: "记录从哪来",
+    onThisDevice: "本机",
+    merged: "已并入",
+    pasteHeading: "粘贴另一台设备的记录",
+    pasteNote: "会话存在录它的那个浏览器里，手机和笔记本各存各的。把另一台的导出粘到这里，两边就能一起算。整段 Markdown 或者纯 JSON 都认。",
+    pastePlaceholder: "把导出的记录粘在这里，JSON 或整段 Markdown 都行",
+    mergeBtn: "并入",
+    clearMerged: "清掉并入的",
+    mergedOk_other: "并入 {{count}} 场。",
+    mergedNone: "没认出可用的记录。导出里带一段 JSON，整块粘过来。",
+
+    noData: "还没有记录。跑一场，或者粘一份别的设备的导出进来。",
+    perTaskHeading: "按任务",
+    outcomeHeading: "哪些走通了，哪些没有",
+    peopleHeading: "按参与者",
+    tasksDone: "已记任务",
+    totalTime: "总用时",
+    quotesHeading: "按任务归拢的原话",
+    debriefHeading: "按问题归拢的 debrief",
+    exportHeading: "可直接粘走",
+    exportTable: "表 7.10 加质性材料",
+    exportJson: "全部记录的 JSON",
+    copyTable: "复制表格",
+    copyJson: "复制 JSON",
+    copied: "已复制",
+
+    thMin: "最快",
+    thMax: "最慢",
+    thMedian: "中位数",
+    thTasks: "任务数",
+    thTime: "用时",
+    thWrong: "走错",
+
+    interpret: "五个人是用来找问题的样本，不是用来测比率的。计数就当计数看。五人里两人需要提示，这值得写；两人和三人的差别，不值得。"
   }
 };

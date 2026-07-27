@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Analysis · Guided Session Recorder</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📊</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="wrap">
+  <div class="mast">
+    <h1 id="mTitle"></h1>
+    <span class="sub" id="mSub"></span>
+    <span class="spacer"></span>
+    <button class="lang" type="button" id="lockBtn" style="display:none"></button>
+    <button class="lang" type="button" id="langBtn"></button>
+  </div>
+  <div id="panel"></div>
+</div>
+
+<script src="vendor/i18next.min.js"></script>
+<script src="locales/en.js"></script>
+<script src="locales/zh.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // SHA-256 of the passphrase. The literal string is deliberately not in this file,
+  // because this repository is public. Changing it:
+  //   python -c "import hashlib;print(hashlib.sha256(b'NEW').hexdigest())"
+  // and paste the result below. See README for why this is a gate and not a lock.
+  var PASS_SHA256 = "ac572d7cfde6e1429c979d6aeef6d0be9bde5b7e39db2c61663761be38d9cd7e";
+
+  var KEY = "usability_recorder_v1";
+  var MERGE_KEY = "usability_recorder_merged_v1";
+  var LANG_KEY = "usability_recorder_lang";
+  var UNLOCK_KEY = "usability_recorder_admin";
+  var LIMIT = 300;
+  var IDS = ["T1", "T2", "T3", "T4", "T5"];
+  var DEBRIEF_KEYS = ["stuck", "useful", "change"];
+
+  // ---------- i18n ----------
+  function initialLang() {
+    try {
+      var st = localStorage.getItem(LANG_KEY);
+      if (st === "en" || st === "zh") return st;
+    } catch (e) {}
+    return (navigator.language || "en").toLowerCase().indexOf("zh") === 0 ? "zh" : "en";
+  }
+  i18next.init({
+    lng: initialLang(), fallbackLng: "en",
+    ns: ["ui", "script", "task", "admin"], defaultNS: "admin",
+    resources: { en: window.__RES.en, zh: window.__RES.zh },
+    interpolation: { escapeValue: false }
+  });
+  function t(k, o) { return i18next.t(k, o); }
+  var tEn = i18next.getFixedT("en");
+  function otherName() { return i18next.getFixedT(i18next.language === "en" ? "zh" : "en")("ui:langName"); }
+
+  // ---------- helpers ----------
+  function esc(x) { return String(x).replace(/[&<>"]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
+  function read(k) { try { return JSON.parse(localStorage.getItem(k) || "{}"); } catch (e) { return {}; } }
+  function median(a) {
+    if (!a.length) return null;
+    var b = a.slice().sort(function (p, q) { return p - q; }), m = Math.floor(b.length / 2);
+    return b.length % 2 ? b[m] : Math.round((b[m-1] + b[m]) / 2);
+  }
+  function secsOf(x) { return x.running ? x.secs + Math.floor((Date.now() - x.startedAt) / 1000) : (x.secs || 0); }
+  function outcomeOf(x) {
+    if (secsOf(x) >= LIMIT) return "failed";
+    if (x.hint === 3) return "failed";
+    if (x.hint === 1 || x.hint === 2) return "hint";
+    if (x.hint === 0) return "independent";
+    return "none";
+  }
+  function mmss(s) { var m = Math.floor(s/60), r = s%60; return m + ":" + (r<10?"0":"") + r; }
+  function el(id) { return document.getElementById(id); }
+
+  async function sha256(str) {
+    if (!window.crypto || !window.crypto.subtle) return null;
+    var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return Array.prototype.map.call(new Uint8Array(buf), function (b) {
+      return ("0" + b.toString(16)).slice(-2);
+    }).join("");
+  }
+
+  // ---------- data ----------
+  // Records from other devices are stored separately so a merge never overwrites
+  // the sessions actually recorded on this one.
+  function allRecords() {
+    var local = read(KEY), extra = read(MERGE_KEY), out = {};
+    Object.keys(extra).forEach(function (k) { out[k] = extra[k]; });
+    Object.keys(local).forEach(function (k) { out[k] = local[k]; });
+    return out;
+  }
+  function counts() {
+    return { local: Object.keys(read(KEY)).length, merged: Object.keys(read(MERGE_KEY)).length };
+  }
+
+  // Accepts a full Markdown export, a bare JSON object, or several of either.
+  function parsePasted(text) {
+    var found = [], seen = {};
+    var push = function (o) {
+      if (!o || typeof o !== "object") return;
+      if (!o.name || !Array.isArray(o.tasks)) return;
+      if (seen[o.name]) return;
+      seen[o.name] = 1;
+      found.push({
+        name: String(o.name), date: String(o.date || ""),
+        tasks: IDS.map(function (id, i) {
+          var s = o.tasks[i] || {};
+          return { secs: Number(s.secs) || 0, running: false, startedAt: 0,
+                   wrong: Number(s.wrong) || 0,
+                   hint: (s.hint === 0 || s.hint === 1 || s.hint === 2 || s.hint === 3) ? s.hint : null,
+                   quote: String(s.quote || "") };
+        }),
+        debrief: {
+          stuck: String((o.debrief || {}).stuck || ""),
+          useful: String((o.debrief || {}).useful || ""),
+          change: String((o.debrief || {}).change || "")
+        }
+      });
+    };
+
+    // fenced json blocks first
+    var re = /```json\s*([\s\S]*?)```/g, m;
+    while ((m = re.exec(text)) !== null) {
+      try { push(JSON.parse(m[1])); } catch (e) {}
+    }
+    if (found.length) return found;
+
+    // whole thing as JSON, object or array
+    try {
+      var whole = JSON.parse(text);
+      if (Array.isArray(whole)) { whole.forEach(push); }
+      else if (whole && whole.tasks) { push(whole); }
+      else if (whole && typeof whole === "object") { Object.keys(whole).forEach(function (k) { push(whole[k]); }); }
+    } catch (e) {}
+    if (found.length) return found;
+
+    // last resort: scan for balanced top-level objects
+    var depth = 0, start = -1;
+    for (var i = 0; i < text.length; i++) {
+      if (text[i] === "{") { if (depth === 0) start = i; depth++; }
+      else if (text[i] === "}") {
+        depth--;
+        if (depth === 0 && start >= 0) {
+          try { push(JSON.parse(text.slice(start, i + 1))); } catch (e) {}
+          start = -1;
+        }
+      }
+    }
+    return found;
+  }
+
+  function aggregate() {
+    var all = allRecords(), names = Object.keys(all).sort();
+    var rows = IDS.map(function (id, i) {
+      var ind = 0, hint = 0, fail = 0, none = 0, times = [], wrong = 0, quotes = [];
+      names.forEach(function (n) {
+        var x = all[n].tasks[i], o = outcomeOf(x);
+        if (o === "independent") ind++;
+        else if (o === "hint") hint++;
+        else if (o === "failed") fail++;
+        else { none++; return; }
+        times.push(secsOf(x));
+        wrong += x.wrong;
+        if ((x.quote || "").trim()) quotes.push({ who: n, text: x.quote.trim() });
+      });
+      times.sort(function (p, q) { return p - q; });
+      return { id: id, ind: ind, hint: hint, fail: fail, none: none, wrong: wrong, quotes: quotes,
+               med: median(times), min: times.length ? times[0] : null,
+               max: times.length ? times[times.length - 1] : null };
+    });
+    var people = names.map(function (n) {
+      var r = all[n], recorded = 0, tt = 0, w = 0;
+      r.tasks.forEach(function (x) { if (outcomeOf(x) !== "none") { recorded++; tt += secsOf(x); w += x.wrong; } });
+      return { name: n, date: r.date, recorded: recorded, time: tt, wrong: w };
+    });
+    return { n: names.length, names: names, rows: rows, people: people, all: all };
+  }
+
+  // ---------- render ----------
+  function paintChrome() {
+    el("mTitle").textContent = t("title");
+    el("mSub").textContent = t("sub");
+    var lb = el("langBtn");
+    lb.textContent = otherName();
+    lb.onclick = function () {
+      var next = i18next.language === "en" ? "zh" : "en";
+      i18next.changeLanguage(next, function () {
+        try { localStorage.setItem(LANG_KEY, next); } catch (e) {}
+        document.documentElement.setAttribute("lang", next === "zh" ? "zh-CN" : "en");
+        render();
+      });
+    };
+    var kb = el("lockBtn");
+    var open = sessionStorage.getItem(UNLOCK_KEY) === "1";
+    kb.style.display = open ? "" : "none";
+    kb.textContent = t("lock");
+    kb.onclick = function () { sessionStorage.removeItem(UNLOCK_KEY); render(); };
+  }
+
+  function render() {
+    paintChrome();
+    if (sessionStorage.getItem(UNLOCK_KEY) === "1") renderBoard();
+    else renderGate();
+  }
+
+  function renderGate() {
+    el("panel").innerHTML =
+      '<div class="card gate">' +
+        '<p class="lockmark">🔒</p>' +
+        '<h2>' + t("gateHeading") + '</h2>' +
+        '<p class="meta">' + t("gateNote") + '</p>' +
+        '<input type="password" id="pw" placeholder="' + esc(t("passPlaceholder")) + '" autocomplete="off">' +
+        '<button class="btn wide" type="button" id="go" style="width:100%">' + t("unlock") + '</button>' +
+        '<p class="err" id="err"></p>' +
+      '</div>';
+
+    var attempt = async function () {
+      var h = await sha256(el("pw").value);
+      if (h === null) { el("err").textContent = t("noCrypto"); return; }
+      if (h === PASS_SHA256) { sessionStorage.setItem(UNLOCK_KEY, "1"); render(); }
+      else { el("err").textContent = t("wrong"); el("pw").select(); }
+    };
+    el("go").onclick = attempt;
+    el("pw").onkeydown = function (e) { if (e.key === "Enter") attempt(); };
+    el("pw").focus();
+  }
+
+  function renderBoard() {
+    var c = counts(), a = aggregate();
+
+    var sources =
+      '<div class="card">' +
+        '<p class="eyebrow"><span class="tag">' + t("sub") + '</span> ' + t("sourcesHeading") + '</p>' +
+        '<div class="srcgrid">' +
+          '<div class="srccard"><div class="n">' + c.local + '</div><div class="cap">' + t("onThisDevice") + '</div></div>' +
+          '<div class="srccard"><div class="n">' + c.merged + '</div><div class="cap">' + t("merged") + '</div></div>' +
+        '</div>' +
+        '<div class="field"><p class="flabel">' + t("pasteHeading") + '</p>' +
+          '<p class="meta">' + t("pasteNote") + '</p>' +
+          '<textarea class="pastebox" id="paste" placeholder="' + esc(t("pastePlaceholder")) + '"></textarea>' +
+          '<div class="rowbtns">' +
+            '<button class="btn" type="button" id="doMerge">' + t("mergeBtn") + '</button>' +
+            (c.merged ? '<button class="btn ghost" type="button" id="clrMerge">' + t("clearMerged") + '</button>' : '') +
+          '</div>' +
+          '<p class="status" id="mstat"></p>' +
+        '</div>' +
+      '</div>';
+
+    if (!a.n) {
+      el("panel").innerHTML = sources +
+        '<div class="card"><p class="meta" style="margin:0">' + t("noData") + '</p></div>';
+      wireSources();
+      return;
+    }
+
+    var perTask = a.rows.map(function (r) {
+      return '<tr><td><span class="id">' + r.id + '</span>' + esc(t("task:" + r.id + "_name")) + '</td>' +
+        '<td class="' + (r.ind ? "ok" : "zero") + '">' + r.ind + ' / ' + a.n + '</td>' +
+        '<td class="' + (r.hint ? "" : "zero") + '">' + r.hint + ' / ' + a.n + '</td>' +
+        '<td class="' + (r.fail ? "bad" : "zero") + '">' + r.fail + ' / ' + a.n + '</td>' +
+        '<td>' + (r.min === null ? "—" : r.min + " s") + '</td>' +
+        '<td>' + (r.med === null ? "—" : r.med + " s") + '</td>' +
+        '<td>' + (r.max === null ? "—" : r.max + " s") + '</td>' +
+        '<td class="' + (r.wrong ? "" : "zero") + '">' + r.wrong + '</td></tr>';
+    }).join("");
+
+    var bars = a.rows.map(function (r) {
+      var w = function (v) { return (v / a.n * 100).toFixed(4) + "%"; };
+      return '<div class="barrow"><span class="lbl">' + r.id + '</span><span class="track">' +
+        (r.ind ? '<i class="seg-ok" style="width:' + w(r.ind) + '"></i>' : '') +
+        (r.hint ? '<i class="seg-hint" style="width:' + w(r.hint) + '"></i>' : '') +
+        (r.fail ? '<i class="seg-bad" style="width:' + w(r.fail) + '"></i>' : '') +
+        (r.none ? '<i class="seg-none" style="width:' + w(r.none) + '"></i>' : '') +
+        '</span><span class="val">' + r.ind + ' / ' + r.hint + ' / ' + r.fail + '</span></div>';
+    }).join("");
+
+    var people = a.people.map(function (p, i) {
+      return '<tr><td>' + esc(p.name) + '</td><td class="pid">P' + (i + 1) + '</td>' +
+        '<td>' + p.recorded + ' / 5</td><td>' + mmss(p.time) + '</td><td>' + p.wrong + '</td></tr>';
+    }).join("");
+
+    var quotes = a.rows.filter(function (r) { return r.quotes.length; }).map(function (r) {
+      return '<h3>' + r.id + ' · ' + esc(t("task:" + r.id + "_name")) + '</h3>' +
+        r.quotes.map(function (q) { return '<p><span class="src">' + esc(q.who) + '</span>' + esc(q.text) + '</p>'; }).join("");
+    }).join("");
+
+    var debrief = DEBRIEF_KEYS.map(function (k) {
+      var items = a.names.map(function (n) {
+        var v = (a.all[n].debrief[k] || "").trim();
+        return v ? '<p><span class="src">' + esc(n) + '</span>' + esc(v) + '</p>' : "";
+      }).join("");
+      return items ? '<h3>' + esc(t("task:debrief_" + k)) + '</h3>' + items : "";
+    }).join("");
+
+    el("panel").innerHTML = sources +
+      '<div class="card">' +
+        '<p class="eyebrow"><span class="tag">' + t("perTaskHeading") + '</span> n = ' + a.n + '</p>' +
+        '<div class="tblwrap"><table class="agg"><thead><tr><th>Task</th>' +
+          '<th>' + t("ui:outIndependent") + '</th><th>' + t("ui:outWithHint") + '</th><th>Failed</th>' +
+          '<th>' + t("thMin") + '</th><th>' + t("thMedian") + '</th><th>' + t("thMax") + '</th>' +
+          '<th>' + t("thWrong") + '</th></tr></thead><tbody>' + perTask + '</tbody></table></div>' +
+        '<p class="note">' + t("interpret") + '</p>' +
+      '</div>' +
+
+      '<div class="card">' +
+        '<p class="eyebrow"><span class="tag">' + t("outcomeHeading") + '</span></p>' +
+        '<div class="bars">' + bars + '</div>' +
+        '<div class="legend">' +
+          '<span><i style="background:var(--ok)"></i>' + t("ui:outIndependent") + '</span>' +
+          '<span><i style="background:var(--warn)"></i>' + t("ui:outWithHint") + '</span>' +
+          '<span><i style="background:var(--bad)"></i>Failed</span>' +
+          '<span><i style="background:var(--rule)"></i>' + t("ui:outNotRecorded") + '</span>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="card">' +
+        '<p class="eyebrow"><span class="tag">' + t("peopleHeading") + '</span></p>' +
+        '<div class="tblwrap"><table class="people"><thead><tr><th>Name</th><th>ID</th>' +
+          '<th>' + t("thTasks") + '</th><th>' + t("thTime") + '</th><th>' + t("thWrong") + '</th>' +
+        '</tr></thead><tbody>' + people + '</tbody></table></div>' +
+      '</div>' +
+
+      (quotes ? '<div class="card"><p class="eyebrow"><span class="tag">' + t("quotesHeading") + '</span></p><div class="qgroup">' + quotes + '</div></div>' : '') +
+      (debrief ? '<div class="card"><p class="eyebrow"><span class="tag">' + t("debriefHeading") + '</span></p><div class="dbgroup">' + debrief + '</div></div>' : '') +
+
+      '<div class="card">' +
+        '<p class="eyebrow"><span class="tag">' + t("exportHeading") + '</span> ' + t("exportTable") + '</p>' +
+        '<textarea class="out" id="mdOut" readonly>' + esc(markdown(a)) + '</textarea>' +
+        '<div class="rowbtns"><button class="btn" type="button" id="cpMd">' + t("copyTable") + '</button></div>' +
+        '<div class="field"><p class="flabel">' + t("exportJson") + '</p>' +
+          '<textarea class="out" id="jsOut" readonly style="min-height:150px">' + esc(JSON.stringify(a.all, null, 1)) + '</textarea>' +
+          '<div class="rowbtns"><button class="btn ghost" type="button" id="cpJs">' + t("copyJson") + '</button></div>' +
+        '</div>' +
+      '</div>';
+
+    wireSources();
+    wireCopy("cpMd", "mdOut", t("copyTable"));
+    wireCopy("cpJs", "jsOut", t("copyJson"));
+  }
+
+  function wireCopy(btnId, taId, back) {
+    var b = el(btnId); if (!b) return;
+    b.onclick = function () {
+      var o = el(taId);
+      o.select(); o.setSelectionRange(0, 999999);
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) {}
+      b.textContent = ok ? t("copied") : t("ui:copyManually");
+      setTimeout(function () { b.textContent = back; }, 1700);
+    };
+  }
+
+  function wireSources() {
+    var m = el("doMerge");
+    if (m) m.onclick = function () {
+      var found = parsePasted(el("paste").value || "");
+      var st = el("mstat");
+      if (!found.length) { st.className = "status bad"; st.textContent = t("mergedNone"); return; }
+      var extra = read(MERGE_KEY);
+      found.forEach(function (r) { extra[r.name] = r; });
+      try { localStorage.setItem(MERGE_KEY, JSON.stringify(extra)); } catch (e) {}
+      st.className = "status good";
+      st.textContent = t("mergedOk", { count: found.length });
+      setTimeout(render, 700);
+    };
+    var cl = el("clrMerge");
+    if (cl) cl.onclick = function () {
+      try { localStorage.removeItem(MERGE_KEY); } catch (e) {}
+      render();
+    };
+  }
+
+  function markdown(a) {
+    var L = [];
+    L.push("*Table 7.10 — Guided usability sessions, n = " + a.n + ". Success is coded independently");
+    L.push("(no hint), with hint (levels 1 to 2), or failed (demonstrated or five-minute timeout).*");
+    L.push("");
+    L.push("| Task | Independent | With hint | Failed | Median time | Wrong turns |");
+    L.push("|---|:---:|:---:|:---:|---:|---:|");
+    a.rows.forEach(function (r) {
+      L.push("| " + r.id + " " + tEn("task:" + r.id + "_name") + " | " +
+        r.ind + " of " + a.n + " | " + r.hint + " of " + a.n + " | " + r.fail + " of " + a.n + " | " +
+        (r.med === null ? "—" : r.med + " s") + " | " + r.wrong + " |");
+    });
+    L.push("");
+    L.push("Time range per task (fastest to slowest):");
+    a.rows.forEach(function (r) {
+      if (r.min === null) return;
+      L.push("- " + r.id + ": " + r.min + " s to " + r.max + " s");
+    });
+    L.push("");
+    L.push("Participants, in the order reported: " +
+      a.people.map(function (p, i) { return "P" + (i + 1) + " = " + p.name; }).join(", "));
+    L.push("");
+    L.push("**Verbatim, grouped by task**");
+    a.rows.forEach(function (r) {
+      if (!r.quotes.length) return;
+      L.push("");
+      L.push("- **" + r.id + " " + tEn("task:" + r.id + "_name") + "**");
+      r.quotes.forEach(function (q) {
+        var i = a.names.indexOf(q.who);
+        L.push("  - P" + (i + 1) + ": " + q.text.replace(/\n/g, " "));
+      });
+    });
+    L.push("");
+    L.push("**Debrief, grouped by question**");
+    DEBRIEF_KEYS.forEach(function (k) {
+      L.push("");
+      L.push("- **" + tEn("task:debrief_" + k) + "**");
+      a.names.forEach(function (n, i) {
+        var v = (a.all[n].debrief[k] || "").replace(/\n/g, " ").trim();
+        if (v) L.push("  - P" + (i + 1) + ": " + v);
+      });
+    });
+    return L.join("\n");
+  }
+
+  document.documentElement.setAttribute("lang", i18next.language === "zh" ? "zh-CN" : "en");
+  render();
+})();
+</script>
+</body>
+</html>

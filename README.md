@@ -99,3 +99,44 @@ Adding a language: copy `locales/en.js`, translate the values, register it in th
 ## Build
 
 No dependencies beyond the vendored i18next, no build step, no external requests. Follows the system light or dark theme. Works on a phone, and works opened straight from disk.
+
+## Analysis page
+
+`admin.html`, linked from the foot of the Setup screen. Behind a passphrase gate.
+
+It reads every session in `localStorage` and reports:
+
+- per task: independent / with hint / failed, plus fastest, median and slowest time, and summed wrong turns
+- a stacked bar per task, so where people got stuck is visible before reading a number
+- per participant: tasks recorded, total time, wrong turns, and the P1..Pn label the write-up uses
+- verbatim quotes grouped by task, and debrief answers grouped by question
+- the finished Table 7.10 Markdown and the raw JSON, both ready to copy
+
+### Merging devices
+
+Sessions live in the browser that recorded them, so a phone and a laptop hold separate sets. The analysis page takes a paste of another device's export and merges it in. It accepts the whole Markdown export, a bare JSON object, or several of either.
+
+Merged records are kept under a **separate** key (`usability_recorder_merged_v1`) from sessions recorded on this device (`usability_recorder_v1`), and local records win on a name collision. A merge can therefore never overwrite a session this device actually recorded, and **Clear merged** removes only the imported ones.
+
+### About the passphrase
+
+It is a gate, not a lock. Two things are worth being clear about:
+
+- The page is served from a public repository, so anyone can read its source. Only the SHA-256 of the passphrase is stored, never the string itself, but a short passphrase is recoverable from a hash by anyone who cares to try.
+- There is nothing here for a network attacker to reach. The data never leaves the device. What the gate actually stops is someone picking up an unlocked phone and reading session notes.
+
+Choose a passphrase that is not derived from personal data and is not reused anywhere else, precisely because the check is weak and the repository is public.
+
+Changing it:
+
+```bash
+python -c "import hashlib;print(hashlib.sha256(b'NEW PASSPHRASE').hexdigest())"
+```
+
+Paste the result into `PASS_SHA256` at the top of the script block in `admin.html`.
+
+## Why not SQLite
+
+GitHub Pages is static hosting. It serves files and runs no code, so there is no process to hold a database connection and no way to write to disk. A SQLite file could be shipped and queried in the browser with a WASM build, but it would be read-only: every session recorded would be lost on refresh.
+
+`localStorage` is what actually fits the job. Five sessions of five tasks is a few kilobytes, it survives a refresh and a locked phone, it needs no network, and it keeps participant notes on the observer's own device rather than on someone else's server.
