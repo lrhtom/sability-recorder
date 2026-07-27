@@ -75,6 +75,15 @@
     if (x.hint === 0) return "independent";
     return "none";
   }
+  // Same coding as outcomeOf, but keeps the two ways of failing apart, which
+  // only matters when reading one session rather than aggregating.
+  function outcomeDetail(x) {
+    if (secsOf(x) >= LIMIT) return { cls:"bad",  label:t("ui:outFailTimeout") };
+    if (x.hint === 3)       return { cls:"bad",  label:t("ui:outFailDemo") };
+    if (x.hint === 1 || x.hint === 2) return { cls:"warn", label:t("ui:outWithHint") };
+    if (x.hint === 0)       return { cls:"ok",   label:t("ui:outIndependent") };
+    return { cls:"none", label:t("ui:outNotRecorded") };
+  }
   function mmss(s) { var m = Math.floor(s/60), r = s%60; return m + ":" + (r<10?"0":"") + r; }
   function el(id) { return document.getElementById(id); }
 
@@ -281,8 +290,29 @@
     }).join("");
 
     var people = a.people.map(function (p, i) {
-      return '<tr><td>' + esc(p.name) + '</td><td class="pid">P' + (i + 1) + '</td>' +
-        '<td>' + p.recorded + ' / 5</td><td>' + mmss(p.time) + '</td><td>' + p.wrong + '</td></tr>';
+      var rec = a.all[p.name];
+      var detail = IDS.map(function (id, k) {
+        var x = rec.tasks[k], o = outcomeDetail(x);
+        return '<tr><td><span class="tid">' + id + '</span><span class="tnm">' +
+            esc(t("task:" + id + "_name")) + '</span></td>' +
+          '<td class="oc-' + o.cls + '">' + o.label + '</td>' +
+          '<td>' + (x.hint === null && secsOf(x) === 0 ? "—" : mmss(secsOf(x))) + '</td>' +
+          '<td>' + x.wrong + '</td>' +
+          '<td>' + (x.hint === null ? "—" : "L" + x.hint) + '</td>' +
+          '<td class="q">' + (esc((x.quote || "").trim()) || "—") + '</td></tr>';
+      }).join("");
+
+      return '<tr><td><button class="rowtoggle" type="button" data-row="' + i + '" aria-expanded="false">' +
+          '<span class="caret">▶</span>' + esc(p.name) + '</button></td>' +
+        '<td class="pid">P' + (i + 1) + '</td>' +
+        '<td>' + p.recorded + ' / 5</td><td>' + mmss(p.time) + '</td><td>' + p.wrong + '</td></tr>' +
+        '<tr class="det" id="det' + i + '" hidden><td colspan="5">' +
+          '<table class="detail"><thead><tr>' +
+            '<th>' + t("ui:thTask") + '</th><th>' + t("thOutcome") + '</th>' +
+            '<th>' + t("thTime") + '</th><th>' + t("thWrong") + '</th>' +
+            '<th>' + t("thHint") + '</th><th>' + t("thQuote") + '</th>' +
+          '</tr></thead><tbody>' + detail + '</tbody></table>' +
+        '</td></tr>';
     }).join("");
 
     var quotes = a.rows.filter(function (r) { return r.quotes.length; }).map(function (r) {
@@ -321,6 +351,8 @@
 
       '<div class="card">' +
         '<p class="eyebrow"><span class="tag">' + t("peopleHeading") + '</span></p>' +
+        '<p class="meta" style="margin:0 0 12px">' + t("detailHint") + '</p>' +
+        '<div class="expandbar"><button type="button" id="expAll">' + t("expandAll") + '</button></div>' +
         '<div class="tblwrap"><table class="people"><thead><tr><th>' + t("ui:thName") + '</th><th>' + t("ui:thId") + '</th>' +
           '<th>' + t("thTasks") + '</th><th>' + t("thTime") + '</th><th>' + t("thWrong") + '</th>' +
         '</tr></thead><tbody>' + people + '</tbody></table></div>' +
@@ -340,8 +372,33 @@
       '</div>';
 
     wireSources();
+    wireRows();
     wireCopy("cpMd", "mdOut", t("copyTable"));
     wireCopy("cpJs", "jsOut", t("copyJson"));
+  }
+
+  function wireRows() {
+    var toggles = Array.prototype.slice.call(document.querySelectorAll(".rowtoggle"));
+    var setOne = function (b, open) {
+      b.setAttribute("aria-expanded", String(open));
+      var row = el("det" + b.getAttribute("data-row"));
+      if (row) row.hidden = !open;
+    };
+    toggles.forEach(function (b) {
+      b.onclick = function () { setOne(b, b.getAttribute("aria-expanded") !== "true"); syncAll(); };
+    });
+    var all = el("expAll");
+    var syncAll = function () {
+      if (!all) return;
+      var anyClosed = toggles.some(function (b) { return b.getAttribute("aria-expanded") !== "true"; });
+      all.textContent = anyClosed ? t("expandAll") : t("collapseAll");
+    };
+    if (all) all.onclick = function () {
+      var open = toggles.some(function (b) { return b.getAttribute("aria-expanded") !== "true"; });
+      toggles.forEach(function (b) { setOne(b, open); });
+      syncAll();
+    };
+    syncAll();
   }
 
   function wireCopy(btnId, taId, back) {

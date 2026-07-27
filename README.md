@@ -110,7 +110,7 @@ It reads every session in `localStorage` and reports:
 
 - per task: independent / with hint / failed, plus fastest, median and slowest time, and summed wrong turns
 - a stacked bar per task, so where people got stuck is visible before reading a number
-- per participant: tasks recorded, total time, wrong turns, and the P1..Pn label the write-up uses
+- per participant: tasks recorded, total time, wrong turns, and the P1..Pn label the write-up uses. Tapping a name opens that session task by task, showing the outcome, time, wrong turns, hint level and quote for each of the five, with the two ways of failing kept apart (`timeout` against `demonstrated`)
 - verbatim quotes grouped by task, and debrief answers grouped by question
 - the finished Table 7.10 Markdown and the raw JSON, both ready to copy
 

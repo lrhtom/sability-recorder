@@ -196,6 +196,13 @@ window.__RES.zh = {
     thTime: "用时",
     thWrong: "走错",
 
+    expandAll: "全部展开",
+    collapseAll: "全部收起",
+    thOutcome: "完成情况",
+    thHint: "提示",
+    thQuote: "原话",
+    thDate: "日期",
+    detailHint: "点名字可以逐个任务展开那一场。",
     interpret: "五个人是用来找问题的样本，不是用来测比率的。计数就当计数看。五人里两人需要提示，这值得写；两人和三人的差别，不值得。"
   }
 };

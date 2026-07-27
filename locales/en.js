@@ -199,6 +199,13 @@ window.__RES.en = {
     thTime: "Time",
     thWrong: "Wrong turns",
 
+    expandAll: "Expand all",
+    collapseAll: "Collapse all",
+    thOutcome: "Outcome",
+    thHint: "Hint",
+    thQuote: "Verbatim",
+    thDate: "Date",
+    detailHint: "Tap a name to open that session task by task.",
     interpret: "Five participants is a sample for finding problems, not for measuring rates. Read the counts as counts. A task where two of five needed a hint is worth writing about; the difference between two and three of five is not."
   }
 };
