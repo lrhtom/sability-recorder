@@ -5,7 +5,7 @@ window.__RES = window.__RES || {};
 window.__RES.en = {
   ui: {
     appTitle: "Guided Session Recorder",
-    appSub: "Usability · 5 tasks · per-task caps",
+    appSub: "Usability · 7 tasks · per-task caps",
     langName: "English",
 
     stepSetup: "Setup",
@@ -30,7 +30,7 @@ window.__RES.en = {
     readToParticipant: "Read to the participant",
     alsoIn: "Also in {{lang}}",
 
-    taskOf: "Task {{n}} of 5",
+    taskOf: "Task {{n}} of {{total}}",
     success: "Success",
     covers: "Covers",
     watchFor: "Watch for",
@@ -124,6 +124,8 @@ window.__RES.en = {
     T3: "Pick a word from that passage you did not know, and add it to your vocabulary study plan.",
     T4: "Now go and review that word. When you are done, tell me when the system says you will see it again.",
     T5: "Please submit a piece of writing. Once the feedback is back, tell me which of the four scoring dimensions you scored lowest on.",
+    T6: "Please set up a listening exercise, start the audio, and tell me what the first question is asking.",
+    T7: "Please start a speaking practice, take one turn of the conversation through to the end, then tell me which of the four scoring dimensions you scored lowest on.",
     L1: "There is somewhere else on this page worth looking at.",
     L2: "Try the navigation on the left."
   },
@@ -149,6 +151,14 @@ window.__RES.en = {
     T5_pass: "The dimension named matches the one the system scored lowest",
     T5_covers: "Band-descriptor-aligned feedback",
     T5_flag: "Have a 250-word text ready to paste. Do not make anyone write on the spot",
+    T6_name: "Set up listening and start it",
+    T6_pass: "Audio is playing and the first question can be stated",
+    T6_covers: "Listening generation · audio controls",
+    T6_flag: "Whether the audio controls are findable is the point, not whether the answer is right",
+    T7_name: "Hold a speaking turn and read the score",
+    T7_pass: "Reaches the summary and names the dimension the system scored lowest",
+    T7_covers: "Speaking conversation · four-dimension scoring",
+    T7_flag: "Check the microphone before the session starts. A permission prompt is not a usability finding",
 
     hintNone: "none",
     hintDirection: "direction",

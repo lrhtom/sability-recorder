@@ -35,12 +35,13 @@
   var LANG_KEY = "usability_recorder_lang";
   // One cap per task rather than one for all five. T2 has a learner read a full
   // passage and answer it, which no honest protocol squeezes into five minutes.
-  var CAPS = { T1: 300, T2: 600, T3: 300, T4: 300, T5: 360 };
+  var CAPS = { T1: 300, T2: 600, T3: 300, T4: 300, T5: 360, T6: 360, T7: 480 };
   // Tasks that make the learner wait on a model call. Waiting is the model's
   // time, not the interface's, so it is banked separately and ignored by the cap.
-  var AI_WAIT = { T2: true, T5: true };
-  var IDS = ["T1", "T2", "T3", "T4", "T5"];
+  var AI_WAIT = { T2: true, T5: true, T6: true, T7: true };
+  var IDS = ["T1", "T2", "T3", "T4", "T5", "T6", "T7"];
   function capOf(i) { return CAPS[IDS[i]]; }
+  var WRAP = IDS.length + 1, TOTALS = IDS.length + 2;
   var DEBRIEF_KEYS = ["stuck", "useful", "change"];
 
   // ---------- i18n ----------
@@ -173,8 +174,8 @@
     lb.onclick = function () { setLang(i18next.language === "en" ? "zh" : "en"); };
     renderRail();
     if (step === 0) renderSetup();
-    else if (step === 6) renderWrap();
-    else if (step === 7) renderTotals();
+    else if (step === WRAP) renderWrap();
+    else if (step === TOTALS) renderTotals();
     else renderTask(step - 1);
     renderBar();
   }
@@ -187,7 +188,7 @@
       var b = document.createElement("button");
       b.type = "button"; b.textContent = lab;
       if (i === step) b.setAttribute("aria-current", "true");
-      else if (i >= 1 && i <= 5 && done(i-1)) b.setAttribute("data-state", "done");
+      else if (i >= 1 && i <= IDS.length && done(i-1)) b.setAttribute("data-state", "done");
       b.onclick = function () { go(i); };
       rail.appendChild(b);
     });
@@ -199,7 +200,7 @@
       var r = all[n];
       var c = r.tasks.filter(function (x) { return x.hint !== null; }).length;
       return '<div class="sess"><span class="pid">' + esc(n) + '</span><span>' + esc(r.date) +
-             '</span><span class="prog">' + c + '/5</span>' +
+             '</span><span class="prog">' + c + '/' + IDS.length + '</span>' +
              '<button type="button" data-load="' + esc(n) + '">' + t("load") + '</button>' +
              '<button type="button" data-del="' + esc(n) + '">' + t("del") + '</button></div>';
     }).join("");
@@ -271,7 +272,7 @@
 
     document.getElementById("panel").innerHTML =
       '<div class="card">' +
-        '<p class="eyebrow"><span class="tag">' + id + '</span> ' + t("taskOf", { n: i + 1 }) +
+        '<p class="eyebrow"><span class="tag">' + id + '</span> ' + t("taskOf", { n: i + 1, total: IDS.length }) +
           '<span class="saved" id="savedFlag" data-on="0">' + t("saved") + '</span></p>' +
         '<h2>' + esc(t("task:" + id + "_name")) + '</h2>' +
         '<div class="script"><span class="lab">' + t("readToParticipant") + '</span>' +
@@ -491,15 +492,15 @@
       stopLoop();
       return;
     }
-    if (step === 6) {
-      bar.appendChild(mkBtn(t("btnBack"), "btn ghost", function () { go(5); }));
+    if (step === WRAP) {
+      bar.appendChild(mkBtn(t("btnBack"), "btn ghost", function () { go(IDS.length); }));
       var cb = mkBtn(t("btnCopySession"), "btn wide", function () { copyFrom("out", cb, t("btnCopied"), t("btnCopySession")); });
       bar.appendChild(cb);
       bar.appendChild(mkBtn(t("btnSeeTotals"), "btn ghost", function () { go(7); }));
       stopLoop();
       return;
     }
-    if (step === 7) {
+    if (step === TOTALS) {
       bar.appendChild(mkBtn(t("btnBack"), "btn ghost", function () { go(0); }));
       var tb = mkBtn(t("btnCopyTable"), "btn wide", function () { copyFrom("aggOut", tb, t("btnCopied"), t("btnCopyTable")); });
       if (!document.getElementById("aggOut")) tb.disabled = true;
@@ -546,7 +547,7 @@
         bank(x); save(); renderBar(); paintClock();
       }));
     }
-    bar.appendChild(mkBtn(step === 5 ? t("btnWrapUp") : t("btnNext"), "btn ghost", function () {
+    bar.appendChild(mkBtn(step === IDS.length ? t("btnWrapUp") : t("btnNext"), "btn ghost", function () {
       bank(x); save(); go(step + 1);
     }));
 
@@ -557,7 +558,7 @@
   function go(n) {
     var cur = s.tasks[step-1];
     if (cur) bank(cur);
-    step = Math.max(0, Math.min(7, n));
+    step = Math.max(0, Math.min(TOTALS, n));
     save(); render(); window.scrollTo(0, 0);
   }
 
