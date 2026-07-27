@@ -87,6 +87,36 @@
       debrief: { stuck:"", useful:"", change:"" }
     };
   }
+  // Records written before a task was added carry a shorter tasks array, and
+  // reading past its end is how this crashed. Everything read from storage or
+  // from a paste goes through here first, so the shape always matches IDS.
+  function blankTask() {
+    return { secs:0, running:false, startedAt:0, wait:0, waiting:false, waitStartedAt:0,
+             wrong:0, hint:null, correct:true, quote:"" };
+  }
+  function normalise(r) {
+    if (!r || typeof r !== "object") return null;
+    var src = Array.isArray(r.tasks) ? r.tasks : [];
+    return {
+      name: String(r.name || ""), date: String(r.date || ""),
+      tasks: IDS.map(function (id, k) {
+        var x = src[k];
+        if (!x || typeof x !== "object") return blankTask();
+        return { secs: Number(x.secs) || 0, running: false, startedAt: 0,
+                 wait: Number(x.wait) || 0, waiting: false, waitStartedAt: 0,
+                 wrong: Number(x.wrong) || 0,
+                 hint: (x.hint === 0 || x.hint === 1 || x.hint === 2 || x.hint === 3) ? x.hint : null,
+                 correct: x.correct !== false,
+                 quote: String(x.quote || "") };
+      }),
+      debrief: {
+        stuck:  String(((r.debrief || {}).stuck)  || ""),
+        useful: String(((r.debrief || {}).useful) || ""),
+        change: String(((r.debrief || {}).change) || "")
+      }
+    };
+  }
+
   function store() { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; } }
   function save() {
     if (!s.name) return;
@@ -201,7 +231,7 @@
     var all = store(), names = Object.keys(all).sort();
     var rows = names.map(function (n) {
       var r = all[n];
-      var c = r.tasks.filter(function (x) { return x.hint !== null; }).length;
+      var c = (normalise(r) || { tasks: [] }).tasks.filter(function (x) { return x.hint !== null; }).length;
       return '<div class="sess"><span class="pid">' + esc(n) + '</span><span>' + esc(r.date) +
              '</span><span class="prog">' + c + '/' + IDS.length + '</span>' +
              '<button type="button" data-load="' + esc(n) + '">' + t("load") + '</button>' +
@@ -243,7 +273,7 @@
     bindText("f_name", function (v) { s.name = v.trim(); save(); document.getElementById("who").textContent = s.name ? (s.name + " · " + s.date) : ""; renderBar(); });
 
     Array.prototype.forEach.call(document.querySelectorAll("[data-load]"), function (b) {
-      b.onclick = function () { var r = store()[b.getAttribute("data-load")]; if (r) { s = r; step = 0; render(); } };
+      b.onclick = function () { var r = normalise(store()[b.getAttribute("data-load")]); if (r) { s = r; step = 0; render(); } };
     });
     Array.prototype.forEach.call(document.querySelectorAll("[data-del]"), function (b) {
       b.onclick = function () {
@@ -360,7 +390,9 @@
 
   // ---------- aggregation ----------
   function aggregate() {
-    var all = store(), names = Object.keys(all).sort();
+    var raw = store(), all = {}, names;
+    Object.keys(raw).forEach(function (n) { var r = normalise(raw[n]); if (r) all[n] = r; });
+    names = Object.keys(all).sort();
     var rows = IDS.map(function (id, i) {
       var ind = 0, hint = 0, fail = 0, none = 0, times = [], waits = [], wrong = 0, quotes = [];
       names.forEach(function (n) {
@@ -461,6 +493,7 @@
   }
 
   function recordOf(r) {
+    r = normalise(r) || r;
     var L = [];
     L.push("## " + (r.name || "?") + " · " + r.date);
     L.push("");

@@ -115,7 +115,41 @@
   // ---------- data ----------
   // One store. An imported record with a name already held replaces that record
   // outright; nothing is ever merged field by field.
-  function allRecords() { return read(KEY); }
+  // Records written before a task was added carry a shorter tasks array, and
+  // reading past its end is how this crashed. Everything read from storage or
+  // from a paste goes through here first, so the shape always matches IDS.
+  function blankTask() {
+    return { secs:0, running:false, startedAt:0, wait:0, waiting:false, waitStartedAt:0,
+             wrong:0, hint:null, correct:true, quote:"" };
+  }
+  function normalise(r) {
+    if (!r || typeof r !== "object") return null;
+    var src = Array.isArray(r.tasks) ? r.tasks : [];
+    return {
+      name: String(r.name || ""), date: String(r.date || ""),
+      tasks: IDS.map(function (id, k) {
+        var x = src[k];
+        if (!x || typeof x !== "object") return blankTask();
+        return { secs: Number(x.secs) || 0, running: false, startedAt: 0,
+                 wait: Number(x.wait) || 0, waiting: false, waitStartedAt: 0,
+                 wrong: Number(x.wrong) || 0,
+                 hint: (x.hint === 0 || x.hint === 1 || x.hint === 2 || x.hint === 3) ? x.hint : null,
+                 correct: x.correct !== false,
+                 quote: String(x.quote || "") };
+      }),
+      debrief: {
+        stuck:  String(((r.debrief || {}).stuck)  || ""),
+        useful: String(((r.debrief || {}).useful) || ""),
+        change: String(((r.debrief || {}).change) || "")
+      }
+    };
+  }
+
+  function allRecords() {
+    var bag = read(KEY), out = {};
+    Object.keys(bag).forEach(function (n) { var r = normalise(bag[n]); if (r) out[n] = r; });
+    return out;
+  }
   function writeAll(bag) { try { localStorage.setItem(KEY, JSON.stringify(bag)); } catch (e) {} }
   function removeRecord(name) {
     var bag = read(KEY);

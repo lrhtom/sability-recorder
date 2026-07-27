@@ -36,6 +36,8 @@ Everything is written to `localStorage` under two keys:
 
 The name is the key, which is what makes an import with a matching name a replacement rather than a second copy.
 
+Records written before a task existed carry a shorter `tasks` array, so everything read from storage or from a paste is normalised to the current task list first: missing tasks come back as unrecorded, missing fields take their defaults, and a malformed record is dropped rather than crashing the page.
+
 Each task entry is `{ secs, running, startedAt, wrong, hint, quote }`. Writes happen on every keystroke, every tally tap and every timer stop, so nothing is lost to a refresh or a locked phone.
 
 There is no backend, no analytics, no telemetry and no `fetch` anywhere in the source. Nothing leaves the device.
