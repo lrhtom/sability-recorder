@@ -150,6 +150,8 @@ Deleting a session because its numbers are inconvenient is falsification rather 
 
 Deletion is permanent, with no undo, and P labels are positions in the list rather than stored identities, so removing one session renumbers everyone below it. Delete before quoting P numbers anywhere, not after.
 
+**Delete everything** sits at the foot of the same card, clearing both stores at once. It is deliberately quiet rather than prominent, sits well away from the row deletes so it cannot be hit by mistake, states the exact count before it will act, and only exists behind the passphrase gate. The line beside it is the useful part: copy the export first, because nothing here can be recovered afterwards.
+
 ### About the passphrase
 
 It is a gate, not a lock. Two things are worth being clear about:

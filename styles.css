@@ -247,3 +247,15 @@ table.detail td.oc-none{color:var(--ink-3);}
 .waitclock[data-on="1"]{color:#FFFFFF;background:var(--ink-2);}
 .btn.wait{background:transparent;color:var(--ink-2);border-color:var(--ink-3);font-weight:600;}
 .btn.wait:hover{background:var(--sunk);}
+
+/* wipe-everything control, deliberately quiet and kept away from the row deletes */
+.danger{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid var(--rule);flex-wrap:wrap;}
+.danger .warn{font-size:13px;color:var(--ink-3);margin-right:auto;}
+.wipebtn{appearance:none;background:none;border:1px solid var(--rule);border-radius:3px;cursor:pointer;font-family:var(--f-ui);font-size:13px;color:var(--ink-3);padding:8px 14px;}
+.wipebtn:hover{border-color:var(--bad);color:var(--bad);}
+.wipebtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.wipeconfirm{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;}
+.wipeconfirm .q{color:var(--bad);font-size:13px;font-weight:600;}
+.wipeconfirm .yes{appearance:none;cursor:pointer;border:1px solid var(--bad);background:var(--bad);color:#FFFFFF;border-radius:3px;font-family:var(--f-ui);font-size:13px;font-weight:700;padding:8px 14px;}
+.wipeconfirm .no{appearance:none;cursor:pointer;background:none;border:0;color:var(--ink-3);font-family:var(--f-ui);font-size:13px;padding:8px 4px;text-decoration:underline;text-underline-offset:3px;}
+.wipeconfirm .yes:focus-visible,.wipeconfirm .no:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}

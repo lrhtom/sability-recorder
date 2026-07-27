@@ -377,6 +377,10 @@
           '<th>' + t("thTasks") + '</th><th>' + t("thTime") + '</th><th>' + t("thWrong") + '</th><th></th>' +
         '</tr></thead><tbody>' + people + '</tbody></table></div>' +
         '<p class="note">' + t("deleteNote") + '</p>' +
+        '<div class="danger" id="dangerZone">' +
+          '<span class="warn">' + t("exportFirst") + '</span>' +
+          '<button class="wipebtn" type="button" id="wipe">' + t("deleteAll") + '</button>' +
+        '</div>' +
       '</div>' +
 
       (quotes ? '<div class="card"><p class="eyebrow"><span class="tag">' + t("quotesHeading") + '</span></p><div class="qgroup">' + quotes + '</div></div>' : '') +
@@ -419,6 +423,22 @@
         cell.querySelector(".no").onclick = function () { render(); };
       };
     });
+
+    // The wipe lives behind the passphrase gate and away from the row deletes,
+    // because its blast radius is every session on the device.
+    var wipe = el("wipe");
+    if (wipe) wipe.onclick = function () {
+      var zone = el("dangerZone");
+      zone.innerHTML = '<span class="wipeconfirm">' +
+        '<span class="q">' + esc(t("confirmAll", { count: aggregate().n })) + '</span>' +
+        '<button class="yes" type="button">' + t("confirmAllYes") + '</button>' +
+        '<button class="no" type="button">' + t("cancel") + '</button></span>';
+      zone.querySelector(".yes").onclick = function () {
+        try { localStorage.removeItem(KEY); localStorage.removeItem(MERGE_KEY); } catch (e) {}
+        render();
+      };
+      zone.querySelector(".no").onclick = function () { render(); };
+    };
 
     var all = el("expAll");
     var syncAll = function () {
