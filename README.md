@@ -118,7 +118,17 @@ It reads every session in `localStorage` and reports:
 
 Sessions live in the browser that recorded them, so a phone and a laptop hold separate sets. The analysis page takes a paste of another device's export and merges it in. It accepts the whole Markdown export, a bare JSON object, or several of either.
 
-Merged records are kept under a **separate** key (`usability_recorder_merged_v1`) from sessions recorded on this device (`usability_recorder_v1`), and local records win on a name collision. A merge can therefore never overwrite a session this device actually recorded, and **Clear merged** removes only the imported ones.
+Merged records are kept under a **separate** key (`usability_recorder_merged_v1`) from sessions recorded on this device (`usability_recorder_v1`), and local records win on a name collision. A merge can therefore never overwrite a session this device actually recorded, and **Clear merged** removes only the imported ones. Rows that came from a merge carry a tag, so it is always visible which store a row belongs to.
+
+### Deleting one participant
+
+Each row in the participant table has a delete, behind a two-step confirm, which removes that session from whichever store holds it.
+
+This exists because the ethics approval requires it. The opening script tells every participant they can stop at any point without giving a reason, and a participant who withdraws is entitled to have their data removed. The other legitimate use is a practice run that should not count.
+
+Deleting a session because its numbers are inconvenient is falsification rather than tidying, and the note under the table says so on screen.
+
+Deletion is permanent, with no undo, and P labels are positions in the list rather than stored identities, so removing one session renumbers everyone below it. Delete before quoting P numbers anywhere, not after.
 
 ### About the passphrase
 

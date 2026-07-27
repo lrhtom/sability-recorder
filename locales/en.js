@@ -206,6 +206,11 @@ window.__RES.en = {
     thQuote: "Verbatim",
     thDate: "Date",
     detailHint: "Tap a name to open that session task by task.",
+    confirmDel: "Delete everything recorded for {{name}}?",
+    confirmYes: "Delete",
+    cancel: "Cancel",
+    deleted: "{{name}} deleted.",
+    deleteNote: "Deleting is permanent and there is no undo. Two situations call for it: a practice run that should not count, and a participant withdrawing consent, which the approved ethics form entitles them to do at any time without giving a reason. Removing a session because its numbers are inconvenient is falsification, not tidying. Note also that P labels are positions in this list, so a deletion renumbers everyone below it.",
     interpret: "Five participants is a sample for finding problems, not for measuring rates. Read the counts as counts. A task where two of five needed a hint is worth writing about; the difference between two and three of five is not."
   }
 };
