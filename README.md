@@ -2,7 +2,9 @@
 
 A single static page for recording usability sessions live. The observer keeps it open on a phone or a second screen while the participant works on the system under test.
 
-**Live:** https://lrhtom.github.io/usability-recorder/
+**Live:** https://lrhtom.github.io/sability-recorder/
+
+Built for the guided sessions reported in §7.3.2 of the LD6053 dissertation. The commit history timestamps the task wording and the hint ladder before the first session ran, which is the point of publishing the protocol rather than only describing it.
 
 ## What it records
 
