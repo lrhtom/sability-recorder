@@ -36,15 +36,19 @@
   }
   .wrap{max-width:720px;margin:0 auto;padding:0 16px;}
 
-  .mast{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:20px 0 14px;}
+  .mast{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:20px 0 14px;}
   .mast h1{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em;}
   .mast .sub{font-family:var(--f-num);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);}
-  .mast .who{margin-left:auto;font-family:var(--f-num);font-size:12px;color:var(--ink-2);}
+  .mast .who{font-family:var(--f-num);font-size:12px;color:var(--ink-2);}
+  .mast .spacer{margin-left:auto;}
+  .lang{appearance:none;cursor:pointer;background:var(--sunk);border:1px solid var(--rule);color:var(--ink-2);border-radius:2px;font-family:var(--f-num);font-size:11px;letter-spacing:.08em;padding:5px 10px;}
+  .lang:hover{color:var(--ink);border-color:var(--ink-3);}
+  .lang:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 
   .rail{display:flex;gap:3px;margin-bottom:18px;}
   .rail button{
     flex:1;appearance:none;border:0;cursor:pointer;background:var(--sunk);color:var(--ink-3);
-    font-family:var(--f-num);font-size:11px;letter-spacing:.06em;padding:7px 0 6px;
+    font-family:var(--f-num);font-size:11px;letter-spacing:.04em;padding:7px 2px 6px;
     border-radius:2px;border-bottom:2px solid transparent;
     transition:color .12s,border-color .12s,background .12s;
   }
@@ -63,11 +67,12 @@
   .script .lab{font-family:var(--f-num);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:7px;}
   .script p{margin:0;font-size:21px;line-height:1.6;font-weight:500;}
   .script p.small{font-size:16px;line-height:1.7;}
-  .script .cn{margin:10px 0 0;font-size:15px;line-height:1.65;color:var(--ink-2);font-weight:400;}
+  .script .alt{margin:12px 0 0;padding-top:10px;border-top:1px solid var(--rule);font-size:15px;line-height:1.65;color:var(--ink-2);font-weight:400;}
+  .script .alt .code{font-family:var(--f-num);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:5px;}
 
   .crit{display:grid;gap:8px;margin-bottom:18px;}
   .crit div{display:flex;gap:10px;font-size:14px;color:var(--ink-2);}
-  .crit b{flex:none;width:74px;font-family:var(--f-num);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);padding-top:3px;font-weight:400;}
+  .crit b{flex:none;width:80px;font-family:var(--f-num);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);padding-top:3px;font-weight:400;}
   .crit .flag{color:var(--warn);}
 
   .field{border-top:1px solid var(--rule);padding-top:16px;margin-top:4px;}
@@ -146,6 +151,22 @@
   .saved{font-family:var(--f-num);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ok);opacity:0;transition:opacity .3s;margin-left:auto;}
   .saved[data-on="1"]{opacity:1;}
 
+  .tblwrap{overflow-x:auto;margin:0 0 4px;}
+  table.agg{border-collapse:collapse;width:100%;font-size:14px;}
+  table.agg th{font-family:var(--f-num);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:400;text-align:right;padding:0 0 9px 14px;border-bottom:1px solid var(--rule);white-space:nowrap;}
+  table.agg th:first-child{text-align:left;padding-left:0;}
+  table.agg td{padding:11px 0 11px 14px;border-bottom:1px solid var(--rule);text-align:right;font-variant-numeric:tabular-nums;font-family:var(--f-num);white-space:nowrap;}
+  table.agg td:first-child{text-align:left;padding-left:0;font-family:var(--f-ui);color:var(--ink-2);white-space:normal;}
+  table.agg td .id{font-family:var(--f-num);font-weight:700;color:var(--ink);margin-right:7px;}
+  table.agg td.ok{color:var(--ok);font-weight:700;}
+  table.agg td.zero{color:var(--ink-3);}
+  table.agg td.bad{color:var(--bad);font-weight:700;}
+
+  .qgroup{margin-top:8px;}
+  .qgroup h3{font-family:var(--f-num);font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:400;margin:16px 0 6px;}
+  .qgroup p{margin:0 0 6px;font-size:14px;color:var(--ink-2);padding-left:12px;border-left:2px solid var(--rule);}
+  .qgroup p .src{font-family:var(--f-num);font-size:11px;color:var(--ink-3);margin-right:8px;}
+
   @media (prefers-reduced-motion: reduce){*{transition:none !important;}}
 </style>
 </head>
@@ -153,67 +174,65 @@
 
 <div class="wrap">
   <div class="mast">
-    <h1>Guided Session Recorder</h1>
-    <span class="sub">Usability · 5 tasks · 5 min cap</span>
+    <h1 id="mTitle"></h1>
+    <span class="sub" id="mSub"></span>
+    <span class="spacer"></span>
     <span class="who" id="who"></span>
+    <button class="lang" type="button" id="langBtn"></button>
   </div>
-  <nav class="rail" id="rail" aria-label="Session steps"></nav>
+  <nav class="rail" id="rail"></nav>
   <div id="panel"></div>
 </div>
 
 <div class="bar"><div class="inner" id="bar"></div></div>
 
+<script src="vendor/i18next.min.js"></script>
+<script src="locales/en.js"></script>
+<script src="locales/zh.js"></script>
 <script>
 (function () {
   "use strict";
 
   var KEY = "usability_recorder_v1";
+  var LANG_KEY = "usability_recorder_lang";
   var LIMIT = 300;
+  var IDS = ["T1", "T2", "T3", "T4", "T5"];
+  var DEBRIEF_KEYS = ["stuck", "useful", "change"];
 
-  var TASKS = [
-    { id:"T1", name:"Read the daily load",
-      script:"Please log in, then tell me how many vocabulary cards are due for review today.",
-      cn:"请登录，然后告诉我：今天有多少张单词卡等着复习。",
-      pass:"The number spoken matches the due count on the dashboard",
-      covers:"Login · dashboard information architecture", flag:"" },
-    { id:"T2", name:"Generate a passage and answer it",
-      script:"Please generate a reading passage, read it, answer all the questions that follow, then tell me how many you got right.",
-      cn:"请生成一篇阅读文章，读完，把后面的题目全部做完，然后告诉我你对了几道。",
-      pass:"Runs generation to reading to answering to seeing a score",
-      covers:"AI generation path · waiting feedback",
-      flag:"Repeated clicking while waiting counts as a wrong turn" },
-    { id:"T3", name:"Add an unknown word to the plan",
-      script:"Pick a word from that passage you did not know, and add it to your vocabulary study plan.",
-      cn:"刚才那篇文章里，挑一个你不认识的词，把它加到你的单词学习计划里去。",
-      pass:"The word can afterwards be found in the vocabulary plan",
-      covers:"Cross-module vocabulary contextualisation",
-      flag:"The core of the integration claim. Getting stuck here is the most valuable result" },
-    { id:"T4", name:"Review it and read the interval",
-      script:"Now go and review that word. When you are done, tell me when the system says you will see it again.",
-      cn:"现在去复习这个词，复习完以后告诉我：系统说下一次什么时候再让你见到它。",
-      pass:"Completes one review and states the next due date or interval",
-      covers:"Whether the scheduler is visible to the learner", flag:"" },
-    { id:"T5", name:"Submit writing and read the feedback",
-      script:"Please submit a piece of writing. Once the feedback is back, tell me which of the four scoring dimensions you scored lowest on.",
-      cn:"请提交一篇写作，拿到反馈以后告诉我：四个评分维度里，哪一个你的分最低。",
-      pass:"The dimension named matches the one the system scored lowest",
-      covers:"Band-descriptor-aligned feedback",
-      flag:"Have a 250-word text ready to paste. Do not make anyone write on the spot" }
-  ];
+  // ---------- i18n ----------
+  function initialLang() {
+    try {
+      var stored = localStorage.getItem(LANG_KEY);
+      if (stored === "en" || stored === "zh") return stored;
+    } catch (e) {}
+    return (navigator.language || "en").toLowerCase().indexOf("zh") === 0 ? "zh" : "en";
+  }
 
-  var LADDER = [
-    { lv:"L0", cap:"none" },
-    { lv:"L1", cap:"direction" },
-    { lv:"L2", cap:"location" },
-    { lv:"L3", cap:"demo" }
-  ];
+  i18next.init({
+    lng: initialLang(),
+    fallbackLng: "en",
+    ns: ["ui", "script", "task"],
+    defaultNS: "ui",
+    resources: { en: window.__RES.en, zh: window.__RES.zh },
+    interpolation: { escapeValue: false }
+  });
 
-  var DEBRIEF = [
-    { k:"stuck",  q:"Which step was the most frustrating?" },
-    { k:"useful", q:"Which part of this would actually help your IELTS preparation?" },
-    { k:"change", q:"If you could change one thing, what would it be?" }
-  ];
+  function t(k, o) { return i18next.t(k, o); }
+  // Exports are always English so the record drops straight into the write-up,
+  // whatever language the interface happens to be showing.
+  var tEn = i18next.getFixedT("en");
+  function tOther(k, o) { return i18next.getFixedT(i18next.language === "en" ? "zh" : "en")(k, o); }
+  function otherCode() { return i18next.language === "en" ? "ZH" : "EN"; }
 
+  function setLang(code) {
+    i18next.changeLanguage(code, function () {
+      try { localStorage.setItem(LANG_KEY, code); } catch (e) {}
+      document.documentElement.setAttribute("lang", code === "zh" ? "zh-CN" : "en");
+      render();
+    });
+  }
+
+  // ---------- state ----------
   var step = 0, s = blank(), tick = null, savedTimer = null;
 
   function today() {
@@ -223,7 +242,7 @@
   function blank() {
     return {
       name: "", date: today(),
-      tasks: TASKS.map(function () { return { secs:0, running:false, startedAt:0, wrong:0, hint:null, quote:"" }; }),
+      tasks: IDS.map(function () { return { secs:0, running:false, startedAt:0, wrong:0, hint:null, quote:"" }; }),
       debrief: { stuck:"", useful:"", change:"" }
     };
   }
@@ -239,40 +258,44 @@
     savedTimer = setTimeout(function () { el.setAttribute("data-on", "0"); }, 1200);
   }
 
-  function liveSecs(t) { return t.running ? t.secs + Math.floor((Date.now() - t.startedAt) / 1000) : t.secs; }
-  function outcome(t) {
-    if (liveSecs(t) >= LIMIT) return { k:"bad",  label:"Failed · timeout",  en:"failed (timeout)" };
-    if (t.hint === 3)         return { k:"bad",  label:"Failed · demonstrated", en:"failed (demonstrated)" };
-    if (t.hint === 1 || t.hint === 2) return { k:"warn", label:"With hint", en:"with hint" };
-    if (t.hint === 0)         return { k:"ok",   label:"Independent", en:"independent" };
-    return { k:"none", label:"Not recorded", en:"not recorded" };
+  function liveSecs(x) { return x.running ? x.secs + Math.floor((Date.now() - x.startedAt) / 1000) : x.secs; }
+  function outcome(x) {
+    if (liveSecs(x) >= LIMIT) return { key:"failed", en:"failed (timeout)", k:"bad",  label:t("outFailTimeout") };
+    if (x.hint === 3)         return { key:"failed", en:"failed (demonstrated)", k:"bad", label:t("outFailDemo") };
+    if (x.hint === 1 || x.hint === 2) return { key:"hint", en:"with hint", k:"warn", label:t("outWithHint") };
+    if (x.hint === 0)         return { key:"independent", en:"independent", k:"ok", label:t("outIndependent") };
+    return { key:"none", en:"not recorded", k:"none", label:t("outNotRecorded") };
   }
   function mmss(sec) { var m = Math.floor(sec/60), r = sec%60; return m + ":" + (r<10?"0":"") + r; }
-  function done(i) { var t = s.tasks[i]; return t.hint !== null || liveSecs(t) >= LIMIT; }
+  function done(i) { var x = s.tasks[i]; return x.hint !== null || liveSecs(x) >= LIMIT; }
   function esc(x) { return String(x).replace(/[&<>"]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
+  function median(a) {
+    if (!a.length) return null;
+    var b = a.slice().sort(function (p, q) { return p - q; }), m = Math.floor(b.length / 2);
+    return b.length % 2 ? b[m] : Math.round((b[m-1] + b[m]) / 2);
+  }
 
+  // ---------- timer ----------
   function startLoop() {
     if (tick) return;
     tick = setInterval(function () {
-      var t = s.tasks[step-1];
-      if (!t || !t.running) return;
+      var x = s.tasks[step-1];
+      if (!x || !x.running) return;
       paintClock();
       var el = document.getElementById("over");
-      if (el) el.setAttribute("data-on", liveSecs(t) >= LIMIT ? "1" : "0");
+      if (el) el.setAttribute("data-on", liveSecs(x) >= LIMIT ? "1" : "0");
     }, 250);
   }
   function stopLoop() { clearInterval(tick); tick = null; }
   function paintClock() {
     var c = document.getElementById("clock"); if (!c) return;
-    var t = s.tasks[step-1]; if (!t) return;
-    var sec = liveSecs(t);
+    var x = s.tasks[step-1]; if (!x) return;
+    var sec = liveSecs(x);
     c.firstChild.nodeValue = mmss(sec);
-    c.setAttribute("data-run", t.running ? "1" : "0");
+    c.setAttribute("data-run", x.running ? "1" : "0");
     c.setAttribute("data-over", sec >= LIMIT ? "1" : "0");
   }
-  function paintWho() {
-    document.getElementById("who").textContent = s.name ? (s.name + " · " + s.date) : "";
-  }
+
   function bindText(id, fn) {
     var el = document.getElementById(id); if (!el) return;
     el.oninput = function () { fn(el.value); };
@@ -282,16 +305,35 @@
     b.type = "button"; b.className = cls; b.textContent = label; b.onclick = fn;
     return b;
   }
+  function copyFrom(id, btn, okLabel, backLabel) {
+    var o = document.getElementById(id);
+    o.style.display = "block";
+    o.select(); o.setSelectionRange(0, 999999);
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    btn.textContent = ok ? okLabel : t("copyManually");
+    setTimeout(function () { btn.textContent = backLabel; }, 1700);
+  }
 
+  // ---------- render ----------
   function render() {
-    paintWho(); renderRail();
-    if (step === 0) renderSetup(); else if (step === 6) renderWrap(); else renderTask(step-1);
+    document.getElementById("mTitle").textContent = t("appTitle");
+    document.getElementById("mSub").textContent = t("appSub");
+    document.getElementById("who").textContent = s.name ? (s.name + " · " + s.date) : "";
+    var lb = document.getElementById("langBtn");
+    lb.textContent = tOther("langName");
+    lb.onclick = function () { setLang(i18next.language === "en" ? "zh" : "en"); };
+    renderRail();
+    if (step === 0) renderSetup();
+    else if (step === 6) renderWrap();
+    else if (step === 7) renderTotals();
+    else renderTask(step - 1);
     renderBar();
   }
 
   function renderRail() {
     var rail = document.getElementById("rail");
-    var labels = ["Setup"].concat(TASKS.map(function(t){return t.id;})).concat(["Wrap"]);
+    var labels = [t("stepSetup")].concat(IDS).concat([t("stepWrap"), t("stepAnalysis")]);
     rail.innerHTML = "";
     labels.forEach(function (lab, i) {
       var b = document.createElement("button");
@@ -307,156 +349,245 @@
     var all = store(), names = Object.keys(all).sort();
     var rows = names.map(function (n) {
       var r = all[n];
-      var c = r.tasks.filter(function (t) { return t.hint !== null; }).length;
+      var c = r.tasks.filter(function (x) { return x.hint !== null; }).length;
       return '<div class="sess"><span class="pid">' + esc(n) + '</span><span>' + esc(r.date) +
              '</span><span class="prog">' + c + '/5</span>' +
-             '<button type="button" data-load="' + esc(n) + '">Load</button>' +
-             '<button type="button" data-del="' + esc(n) + '">Delete</button></div>';
+             '<button type="button" data-load="' + esc(n) + '">' + t("load") + '</button>' +
+             '<button type="button" data-del="' + esc(n) + '">' + t("del") + '</button></div>';
     }).join("");
 
     document.getElementById("panel").innerHTML =
       '<div class="card">' +
-        '<p class="eyebrow"><span class="tag">Start</span> Who this session is with' +
-          '<span class="saved" id="savedFlag" data-on="0">Saved</span></p>' +
-        '<h2>Enter a name to begin</h2>' +
-        '<p class="meta">The name only separates one session from another. It stays in this browser and is never uploaded. It becomes P1 to P5 when the data reaches the dissertation.</p>' +
-        '<input type="text" id="f_name" placeholder="e.g. Wang" autocomplete="off" value="' + esc(s.name) + '">' +
-        '<div class="field">' +
-          '<p class="flabel">Before you start</p>' +
-          '<ol class="ol">' +
-            '<li>Consent form signed on the spot</li>' +
-            '<li>This person <strong>did not take the earlier questionnaire</strong></li>' +
-            '<li>Seeded account ready, but <strong>leave the dashboard closed</strong></li>' +
-            '<li>Browser cleared: no history, no autofill</li>' +
-            '<li>A 250-word text ready to paste for T5</li>' +
-          '</ol>' +
-        '</div>' +
+        '<p class="eyebrow"><span class="tag">' + t("setupTag") + '</span> ' + t("setupEyebrow") +
+          '<span class="saved" id="savedFlag" data-on="0">' + t("saved") + '</span></p>' +
+        '<h2>' + t("setupHeading") + '</h2>' +
+        '<p class="meta">' + t("setupNote") + '</p>' +
+        '<input type="text" id="f_name" placeholder="' + esc(t("namePlaceholder")) + '" autocomplete="off" value="' + esc(s.name) + '">' +
+        '<div class="field"><p class="flabel">' + t("beforeYouStart") + '</p><ol class="ol">' +
+          '<li>' + t("prep1") + '</li><li>' + t("prep2") + '</li><li>' + t("prep3") + '</li>' +
+          '<li>' + t("prep4") + '</li><li>' + t("prep5") + '</li></ol></div>' +
       '</div>' +
 
       '<div class="card">' +
-        '<p class="eyebrow"><span class="tag">Read aloud</span> Same words for all five</p>' +
-        '<div class="script"><span class="lab">Opening</span><p class="small">' +
-          'What is being tested here is the system, not you. If something does not work, that is the system’s problem, not yours.<br><br>' +
-          'There are five tasks. Please think aloud as you go: what you are looking for, what you expect a click to do, where you hesitate.<br><br>' +
-          'I will not answer questions like “where is that button”. If you get stuck, keep trying, and if you really cannot get past it I will give you a hint. Your actions and timings are being recorded. Nothing is filmed.<br><br>' +
-          'You can stop at any point, and you do not need a reason.' +
-        '</p>' +
-        '<p class="cn">今天测的是这个系统，不是你。做不出来是系统的问题。五个任务，请边做边说出你在想什么。我不会回答「这个按钮在哪」，卡住了就继续试，实在过不去我会给提示。全程记录操作和用时，不录像。随时可以停下，不需要理由。</p>' +
+        '<p class="eyebrow"><span class="tag">' + t("readAloudTag") + '</span> ' + t("sameWords") + '</p>' +
+        '<div class="script"><span class="lab">' + t("openingLabel") + '</span>' +
+          '<p class="small">' + t("script:opening") + '</p>' +
+          '<div class="alt"><span class="code">' + otherCode() + '</span>' + tOther("script:opening") + '</div>' +
         '</div>' +
       '</div>' +
 
       (names.length
-        ? '<div class="card"><p class="eyebrow"><span class="tag">This device</span> ' + names.length + ' session' + (names.length > 1 ? 's' : '') + ' saved</p>' +
+        ? '<div class="card"><p class="eyebrow"><span class="tag">' + t("thisDevice") + '</span> ' +
+          t("sessionsSaved", { count: names.length }) + '</p>' +
           '<div class="sessions">' + rows + '</div>' +
-          '<div style="margin-top:14px"><button class="btn ghost" type="button" id="dumpAll">Export all ' + names.length + '</button></div>' +
+          '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">' +
+            '<button class="btn ghost" type="button" id="dumpAll">' + t("exportAll", { count: names.length }) + '</button>' +
+            '<button class="btn ghost" type="button" id="toTotals">' + t("btnSeeTotals") + '</button>' +
+          '</div>' +
           '<textarea class="out" id="allOut" readonly style="display:none;margin-top:12px"></textarea>' +
-          '<p class="note">Everything lives in this browser only. Switching device or clearing the cache loses it, so <b>export each session as soon as it ends.</b></p></div>'
+          '<p class="note">' + t("storageNote") + '</p></div>'
         : '');
 
-    bindText("f_name", function (v) { s.name = v.trim(); save(); paintWho(); renderBar(); });
+    bindText("f_name", function (v) { s.name = v.trim(); save(); document.getElementById("who").textContent = s.name ? (s.name + " · " + s.date) : ""; renderBar(); });
 
     Array.prototype.forEach.call(document.querySelectorAll("[data-load]"), function (b) {
       b.onclick = function () { var r = store()[b.getAttribute("data-load")]; if (r) { s = r; step = 0; render(); } };
     });
     Array.prototype.forEach.call(document.querySelectorAll("[data-del]"), function (b) {
       b.onclick = function () {
-        var n = b.getAttribute("data-del"), all = store();
-        delete all[n];
-        try { localStorage.setItem(KEY, JSON.stringify(all)); } catch (e) {}
+        var n = b.getAttribute("data-del"), all2 = store();
+        delete all2[n];
+        try { localStorage.setItem(KEY, JSON.stringify(all2)); } catch (e) {}
         if (s.name === n) s = blank();
         render();
       };
     });
     var dump = document.getElementById("dumpAll");
     if (dump) dump.onclick = function () {
-      var all = store(), ta = document.getElementById("allOut");
-      ta.value = Object.keys(all).sort().map(function (n) { return recordOf(all[n]); }).join("\n\n---\n\n");
-      ta.style.display = "block";
-      ta.select();
-      try { document.execCommand("copy"); dump.textContent = "All copied"; }
-      catch (e) { dump.textContent = "Select and copy manually"; }
-      setTimeout(function () { dump.textContent = "Export all " + Object.keys(all).length; }, 1800);
+      var all2 = store(), ta = document.getElementById("allOut");
+      ta.value = Object.keys(all2).sort().map(function (n) { return recordOf(all2[n]); }).join("\n\n---\n\n");
+      copyFrom("allOut", dump, t("allCopied"), t("exportAll", { count: Object.keys(all2).length }));
     };
+    var tot = document.getElementById("toTotals");
+    if (tot) tot.onclick = function () { go(7); };
   }
 
   function renderTask(i) {
-    var T = TASKS[i], t = s.tasks[i], o = outcome(t);
-    var segs = LADDER.map(function (L, k) {
-      return '<button type="button" data-hint="' + k + '" aria-pressed="' + (t.hint === k) + '">' +
-             '<span class="lv">' + L.lv + '</span><span class="cap">' + L.cap + '</span></button>';
+    var id = IDS[i], x = s.tasks[i], o = outcome(x);
+    var caps = [t("task:hintNone"), t("task:hintDirection"), t("task:hintLocation"), t("task:hintDemo")];
+    var segs = caps.map(function (cap, k) {
+      return '<button type="button" data-hint="' + k + '" aria-pressed="' + (x.hint === k) + '">' +
+             '<span class="lv">L' + k + '</span><span class="cap">' + cap + '</span></button>';
     }).join("");
+    var flag = t("task:" + id + "_flag");
 
     document.getElementById("panel").innerHTML =
       '<div class="card">' +
-        '<p class="eyebrow"><span class="tag">' + T.id + '</span> Task ' + (i+1) + ' of 5' +
-          '<span class="saved" id="savedFlag" data-on="0">Saved</span></p>' +
-        '<h2>' + esc(T.name) + '</h2>' +
-        '<div class="script"><span class="lab">Read to the participant</span>' +
-          '<p>' + esc(T.script) + '</p>' +
-          '<p class="cn">' + esc(T.cn) + '</p></div>' +
+        '<p class="eyebrow"><span class="tag">' + id + '</span> ' + t("taskOf", { n: i + 1 }) +
+          '<span class="saved" id="savedFlag" data-on="0">' + t("saved") + '</span></p>' +
+        '<h2>' + esc(t("task:" + id + "_name")) + '</h2>' +
+        '<div class="script"><span class="lab">' + t("readToParticipant") + '</span>' +
+          '<p>' + esc(t("script:" + id)) + '</p>' +
+          '<div class="alt"><span class="code">' + otherCode() + '</span>' + esc(tOther("script:" + id)) + '</div>' +
+        '</div>' +
         '<div class="crit">' +
-          '<div><b>Success</b><span>' + esc(T.pass) + '</span></div>' +
-          '<div><b>Covers</b><span>' + esc(T.covers) + '</span></div>' +
-          (T.flag ? '<div><b>Watch for</b><span class="flag">' + esc(T.flag) + '</span></div>' : '') +
+          '<div><b>' + t("success") + '</b><span>' + esc(t("task:" + id + "_pass")) + '</span></div>' +
+          '<div><b>' + t("covers") + '</b><span>' + esc(t("task:" + id + "_covers")) + '</span></div>' +
+          (flag ? '<div><b>' + t("watchFor") + '</b><span class="flag">' + esc(flag) + '</span></div>' : '') +
         '</div>' +
         '<div class="field">' +
-          '<p class="flabel">Wrong turns <span class="hint">wrong button · wrong page · duplicate submit, one each</span></p>' +
+          '<p class="flabel">' + t("wrongTurns") + ' <span class="hint">' + t("wrongTurnsHint") + '</span></p>' +
           '<div class="tally">' +
-            '<button class="knob" type="button" id="w_dn"' + (t.wrong === 0 ? " disabled" : "") + '>&minus;</button>' +
-            '<span class="num">' + t.wrong + '</span>' +
+            '<button class="knob" type="button" id="w_dn"' + (x.wrong === 0 ? " disabled" : "") + '>&minus;</button>' +
+            '<span class="num">' + x.wrong + '</span>' +
             '<button class="knob" type="button" id="w_up">+</button>' +
           '</div>' +
         '</div>' +
         '<div class="field">' +
-          '<p class="flabel">Hint level <span class="hint">no skipping levels; wait 30 s before escalating</span></p>' +
+          '<p class="flabel">' + t("hintLevel") + ' <span class="hint">' + t("hintLevelHint") + '</span></p>' +
           '<div class="seg" id="seg">' + segs + '</div>' +
-          '<div class="ladder">L1 <code>There is somewhere else on this page worth looking at.</code><br>' +
-            'L2 <code>Try the navigation on the left.</code> (a direction, never the button itself)<br>' +
-            'L3 demonstrate it = counts as failed</div>' +
+          '<div class="ladder">L1 <code>' + esc(t("script:L1")) + '</code><br>' +
+            'L2 <code>' + esc(t("script:L2")) + '</code> ' + t("ladderNote") + '<br>' +
+            t("ladderDemo") + '</div>' +
           '<div style="margin-top:14px"><span class="chip ' + o.k + '">' + o.label + '</span></div>' +
-          '<div class="over" id="over" data-on="' + (liveSecs(t) >= LIMIT ? "1" : "0") + '">Five minutes reached. This task is failed. Stop the clock and move on.</div>' +
+          '<div class="over" id="over" data-on="' + (liveSecs(x) >= LIMIT ? "1" : "0") + '">' + t("timeoutBanner") + '</div>' +
         '</div>' +
         '<div class="field">' +
-          '<p class="flabel">Verbatim quote <span class="hint">word for word, not paraphrased</span></p>' +
-          '<textarea id="q" rows="3" placeholder="&quot;I thought this one was the search box...&quot;">' + esc(t.quote) + '</textarea>' +
+          '<p class="flabel">' + t("verbatim") + ' <span class="hint">' + t("verbatimHint") + '</span></p>' +
+          '<textarea id="q" rows="3" placeholder="' + esc(t("verbatimPlaceholder")) + '">' + esc(x.quote) + '</textarea>' +
         '</div>' +
       '</div>';
 
-    document.getElementById("w_up").onclick = function () { t.wrong++; save(); renderTask(i); };
-    document.getElementById("w_dn").onclick = function () { if (t.wrong > 0) t.wrong--; save(); renderTask(i); };
+    document.getElementById("w_up").onclick = function () { x.wrong++; save(); renderTask(i); };
+    document.getElementById("w_dn").onclick = function () { if (x.wrong > 0) x.wrong--; save(); renderTask(i); };
     Array.prototype.forEach.call(document.querySelectorAll("#seg button"), function (b) {
       b.onclick = function () {
         var k = parseInt(b.getAttribute("data-hint"), 10);
-        t.hint = (t.hint === k) ? null : k;
+        x.hint = (x.hint === k) ? null : k;
         save(); renderTask(i); renderRail();
       };
     });
-    bindText("q", function (v) { t.quote = v; save(); });
+    bindText("q", function (v) { x.quote = v; save(); });
     paintClock();
   }
 
   function renderWrap() {
-    var fields = DEBRIEF.map(function (d) {
-      return '<div class="field"><p class="flabel">' + esc(d.q) + '</p>' +
-             '<textarea id="d_' + d.k + '" rows="2" placeholder="record the actual words">' + esc(s.debrief[d.k]) + '</textarea></div>';
+    var fields = DEBRIEF_KEYS.map(function (k) {
+      return '<div class="field"><p class="flabel">' + t("task:debrief_" + k) + '</p>' +
+             '<textarea id="d_' + k + '" rows="2" placeholder="' + esc(t("debriefPlaceholder")) + '">' + esc(s.debrief[k]) + '</textarea></div>';
     }).join("");
 
     document.getElementById("panel").innerHTML =
       '<div class="card">' +
-        '<p class="eyebrow"><span class="tag">Wrap</span> Spoken debrief · 5 min' +
-          '<span class="saved" id="savedFlag" data-on="0">Saved</span></p>' +
-        '<h2>Three questions, recorded verbatim</h2>' +
-        '<p class="meta">Do not let the participant fill in the in-platform questionnaire. That sample is closed, and extra rows would break statistics that have already been checked against the database.</p>' +
-        fields +
+        '<p class="eyebrow"><span class="tag">' + t("wrapTag") + '</span> ' + t("wrapEyebrow") +
+          '<span class="saved" id="savedFlag" data-on="0">' + t("saved") + '</span></p>' +
+        '<h2>' + t("wrapHeading") + '</h2>' +
+        '<p class="meta">' + t("wrapNote") + '</p>' + fields +
       '</div>' +
       '<div class="card">' +
-        '<p class="eyebrow"><span class="tag">Export</span> Copy it out</p>' +
+        '<p class="eyebrow"><span class="tag">' + t("exportTag") + '</span> ' + t("exportEyebrow") + '</p>' +
         '<textarea class="out" id="out" readonly></textarea>' +
-        '<p class="note">Aggregate once all five are done. With n = 5, write "4 of 5", <b>never a percentage</b> — 20% granularity cannot carry that precision.</p>' +
+        '<p class="note">' + t("exportNote") + '</p>' +
       '</div>';
 
-    DEBRIEF.forEach(function (d) { bindText("d_" + d.k, function (v) { s.debrief[d.k] = v; save(); paintOut(); }); });
+    DEBRIEF_KEYS.forEach(function (k) { bindText("d_" + k, function (v) { s.debrief[k] = v; save(); paintOut(); }); });
     paintOut();
+  }
+
+  // ---------- aggregation ----------
+  function aggregate() {
+    var all = store(), names = Object.keys(all).sort();
+    var rows = IDS.map(function (id, i) {
+      var ind = 0, hint = 0, fail = 0, none = 0, times = [], wrong = 0, quotes = [];
+      names.forEach(function (n) {
+        var x = all[n].tasks[i], o = outcome(x);
+        if (o.key === "independent") ind++;
+        else if (o.key === "hint") hint++;
+        else if (o.key === "failed") fail++;
+        else { none++; return; }
+        times.push(liveSecs(x));
+        wrong += x.wrong;
+        if ((x.quote || "").trim()) quotes.push({ who: n, text: x.quote.trim() });
+      });
+      return { id: id, ind: ind, hint: hint, fail: fail, none: none,
+               med: median(times), wrong: wrong, quotes: quotes };
+    });
+    return { n: names.length, names: names, rows: rows, all: all };
+  }
+
+  function renderTotals() {
+    var a = aggregate();
+    if (!a.n) {
+      document.getElementById("panel").innerHTML =
+        '<div class="card"><p class="eyebrow"><span class="tag">' + t("analysisTag") + '</span> ' + t("analysisEyebrow") + '</p>' +
+        '<h2>' + t("analysisHeading") + '</h2><p class="meta">' + t("analysisEmpty") + '</p></div>';
+      return;
+    }
+
+    var body = a.rows.map(function (r) {
+      return '<tr><td><span class="id">' + r.id + '</span>' + esc(t("task:" + r.id + "_name")) + '</td>' +
+        '<td class="' + (r.ind ? "ok" : "zero") + '">' + r.ind + ' / ' + a.n + '</td>' +
+        '<td class="' + (r.hint ? "" : "zero") + '">' + r.hint + ' / ' + a.n + '</td>' +
+        '<td class="' + (r.fail ? "bad" : "zero") + '">' + r.fail + ' / ' + a.n + '</td>' +
+        '<td>' + (r.med === null ? "—" : r.med + " s") + '</td>' +
+        '<td class="' + (r.wrong ? "" : "zero") + '">' + r.wrong + '</td></tr>';
+    }).join("");
+
+    var quotes = a.rows.filter(function (r) { return r.quotes.length; }).map(function (r) {
+      return '<h3>' + r.id + ' · ' + esc(t("task:" + r.id + "_name")) + '</h3>' +
+        r.quotes.map(function (q) {
+          return '<p><span class="src">' + esc(q.who) + '</span>' + esc(q.text) + '</p>';
+        }).join("");
+    }).join("");
+
+    document.getElementById("panel").innerHTML =
+      '<div class="card">' +
+        '<p class="eyebrow"><span class="tag">' + t("analysisTag") + '</span> ' + t("analysisEyebrow") + ' · n = ' + a.n + '</p>' +
+        '<h2>' + t("analysisHeading") + '</h2>' +
+        '<div class="tblwrap"><table class="agg"><thead><tr>' +
+          '<th>Task</th><th>' + t("outIndependent") + '</th><th>' + t("outWithHint") + '</th>' +
+          '<th>Failed</th><th>Median</th><th>' + t("wrongTurns") + '</th>' +
+        '</tr></thead><tbody>' + body + '</tbody></table></div>' +
+        '<p class="note">' + t("analysisNote") + '</p>' +
+      '</div>' +
+      (quotes ? '<div class="card"><p class="eyebrow"><span class="tag">' + t("verbatim") + '</span> ' + t("quotesHeading") + '</p><div class="qgroup">' + quotes + '</div></div>' : '') +
+      '<div class="card"><p class="eyebrow"><span class="tag">' + t("exportTag") + '</span> Table 7.10</p>' +
+        '<textarea class="out" id="aggOut" readonly>' + esc(aggMarkdown(a)) + '</textarea></div>';
+  }
+
+  function aggMarkdown(a) {
+    var L = [];
+    L.push("*Table 7.10 — Guided usability sessions, n = " + a.n + ". Success is coded independently (no hint),");
+    L.push("with hint (levels 1 to 2), or failed (demonstrated or five-minute timeout). Times are medians.*");
+    L.push("");
+    L.push("| Task | Independent | With hint | Failed | Median time | Wrong turns |");
+    L.push("|---|:---:|:---:|:---:|---:|---:|");
+    a.rows.forEach(function (r) {
+      L.push("| " + r.id + " " + tEn("task:" + r.id + "_name") + " | " +
+        r.ind + " of " + a.n + " | " + r.hint + " of " + a.n + " | " + r.fail + " of " + a.n + " | " +
+        (r.med === null ? "—" : r.med + " s") + " | " + r.wrong + " |");
+    });
+    L.push("");
+    L.push("Sessions: " + a.names.join(", ") + " (reported as P1 to P" + a.n + ")");
+    L.push("");
+    L.push("**Verbatim, grouped by task**");
+    a.rows.forEach(function (r) {
+      if (!r.quotes.length) return;
+      L.push("");
+      L.push("- **" + r.id + " " + tEn("task:" + r.id + "_name") + "**");
+      r.quotes.forEach(function (q) { L.push("  - " + q.who + ": " + q.text.replace(/\n/g, " ")); });
+    });
+    L.push("");
+    L.push("**Debrief, grouped by question**");
+    DEBRIEF_KEYS.forEach(function (k) {
+      L.push("");
+      L.push("- **" + tEn("task:debrief_" + k) + "**");
+      a.names.forEach(function (n) {
+        var v = (a.all[n].debrief[k] || "").replace(/\n/g, " ").trim();
+        if (v) L.push("  - " + n + ": " + v);
+      });
+    });
+    return L.join("\n");
   }
 
   function recordOf(r) {
@@ -465,22 +596,24 @@
     L.push("");
     L.push("| Task | Outcome | Time | Wrong turns | Hint | Verbatim |");
     L.push("|---|---|---:|---:|---|---|");
-    TASKS.forEach(function (T, i) {
-      var t = r.tasks[i], o = outcome(t), sec = liveSecs(t);
-      L.push("| " + T.id + " " + T.name + " | " + o.en + " | " + sec + " s | " + t.wrong + " | " +
-             (t.hint === null ? "—" : LADDER[t.hint].lv) + " | " +
-             ((t.quote || "").replace(/\n/g, " ").replace(/\|/g, "/") || "—") + " |");
+    IDS.forEach(function (id, i) {
+      var x = r.tasks[i], o = outcome(x);
+      L.push("| " + id + " " + tEn("task:" + id + "_name") + " | " + o.en + " | " + liveSecs(x) + " s | " +
+             x.wrong + " | " + (x.hint === null ? "—" : "L" + x.hint) + " | " +
+             ((x.quote || "").replace(/\n/g, " ").replace(/\|/g, "/") || "—") + " |");
     });
     L.push("");
     L.push("**Debrief**");
-    DEBRIEF.forEach(function (d) { L.push("- " + d.q + "  " + ((r.debrief[d.k] || "").replace(/\n/g, " ") || "—")); });
+    DEBRIEF_KEYS.forEach(function (k) {
+      L.push("- " + tEn("task:debrief_" + k) + "  " + ((r.debrief[k] || "").replace(/\n/g, " ") || "—"));
+    });
     L.push("");
     L.push("```json");
     L.push(JSON.stringify({
       name: r.name, date: r.date,
-      tasks: TASKS.map(function (T, i) {
-        var t = r.tasks[i];
-        return { id:T.id, secs:liveSecs(t), wrong:t.wrong, hint:t.hint, outcome:outcome(t).en, quote:t.quote };
+      tasks: IDS.map(function (id, i) {
+        var x = r.tasks[i];
+        return { id:id, secs:liveSecs(x), wrong:x.wrong, hint:x.hint, outcome:outcome(x).en, quote:x.quote };
       }),
       debrief: r.debrief
     }, null, 1));
@@ -498,57 +631,59 @@
     bar.innerHTML = "";
 
     if (step === 0) {
-      var start = mkBtn("Start T1", "btn wide", function () { go(1); });
+      var start = mkBtn(t("btnStartT1"), "btn wide", function () { go(1); });
       if (!s.name) start.disabled = true;
       bar.appendChild(start);
       stopLoop();
       return;
     }
     if (step === 6) {
-      bar.appendChild(mkBtn("Back", "btn ghost", function () { go(5); }));
-      var copyBtn = mkBtn("Copy this session", "btn wide", function () {
-        var o = document.getElementById("out");
-        o.select(); o.setSelectionRange(0, 999999);
-        var ok = false;
-        try { ok = document.execCommand("copy"); } catch (e) {}
-        copyBtn.textContent = ok ? "Copied" : "Select and copy manually";
-        setTimeout(function () { copyBtn.textContent = "Copy this session"; }, 1600);
-      });
-      bar.appendChild(copyBtn);
+      bar.appendChild(mkBtn(t("btnBack"), "btn ghost", function () { go(5); }));
+      var cb = mkBtn(t("btnCopySession"), "btn wide", function () { copyFrom("out", cb, t("btnCopied"), t("btnCopySession")); });
+      bar.appendChild(cb);
+      bar.appendChild(mkBtn(t("btnSeeTotals"), "btn ghost", function () { go(7); }));
+      stopLoop();
+      return;
+    }
+    if (step === 7) {
+      bar.appendChild(mkBtn(t("btnBack"), "btn ghost", function () { go(0); }));
+      var tb = mkBtn(t("btnCopyTable"), "btn wide", function () { copyFrom("aggOut", tb, t("btnCopied"), t("btnCopyTable")); });
+      if (!document.getElementById("aggOut")) tb.disabled = true;
+      bar.appendChild(tb);
       stopLoop();
       return;
     }
 
-    var t = s.tasks[step-1];
+    var x = s.tasks[step-1];
     var clock = document.createElement("span");
     clock.className = "clock"; clock.id = "clock";
-    clock.appendChild(document.createTextNode(mmss(liveSecs(t))));
+    clock.appendChild(document.createTextNode(mmss(liveSecs(x))));
     var u = document.createElement("span"); u.className = "u"; u.textContent = " / 5:00";
     clock.appendChild(u);
     bar.appendChild(clock);
 
-    if (!t.running) {
-      bar.appendChild(mkBtn(t.secs === 0 ? "Start timer" : "Resume", "btn run", function () {
-        t.running = true; t.startedAt = Date.now(); save(); renderBar(); startLoop();
+    if (!x.running) {
+      bar.appendChild(mkBtn(x.secs === 0 ? t("btnStartTimer") : t("btnResume"), "btn run", function () {
+        x.running = true; x.startedAt = Date.now(); save(); renderBar(); startLoop();
       }));
     } else {
-      bar.appendChild(mkBtn("Stop", "btn", function () {
-        t.secs = liveSecs(t); t.running = false; save(); renderBar(); paintClock();
+      bar.appendChild(mkBtn(t("btnStop"), "btn", function () {
+        x.secs = liveSecs(x); x.running = false; save(); renderBar(); paintClock();
       }));
     }
-    bar.appendChild(mkBtn(step === 5 ? "Wrap up →" : "Next →", "btn ghost", function () {
-      if (t.running) { t.secs = liveSecs(t); t.running = false; }
+    bar.appendChild(mkBtn(step === 5 ? t("btnWrapUp") : t("btnNext"), "btn ghost", function () {
+      if (x.running) { x.secs = liveSecs(x); x.running = false; }
       save(); go(step + 1);
     }));
 
     paintClock();
-    if (t.running) startLoop(); else stopLoop();
+    if (x.running) startLoop(); else stopLoop();
   }
 
   function go(n) {
     var cur = s.tasks[step-1];
     if (cur && cur.running) { cur.secs = liveSecs(cur); cur.running = false; }
-    step = Math.max(0, Math.min(6, n));
+    step = Math.max(0, Math.min(7, n));
     save(); render(); window.scrollTo(0, 0);
   }
 
@@ -557,6 +692,7 @@
     if (cur && cur.running) { cur.secs = liveSecs(cur); cur.running = false; save(); }
   });
 
+  document.documentElement.setAttribute("lang", i18next.language === "zh" ? "zh-CN" : "en");
   render();
 })();
 </script>
