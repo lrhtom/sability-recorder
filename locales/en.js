@@ -214,6 +214,11 @@ window.__RES.en = {
     exportJson: "All records as JSON",
     copyTable: "Copy the table",
     copyJson: "Copy the JSON",
+    dlPng: "Download PNG",
+    dlJson: "Download JSON",
+    pngTitle: "Guided usability sessions",
+    pngNote: "Counts, not percentages. Five participants find problems; they do not measure rates. Time on task excludes waiting on a model.",
+    pngCols: "independent / with hint / failed",
     copied: "Copied",
 
     thMin: "Fastest",

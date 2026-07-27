@@ -148,7 +148,13 @@ It reads every session in `localStorage` and reports:
 - a stacked bar per task, so where people got stuck is visible before reading a number
 - per participant: tasks recorded, total time, wrong turns, and the P1..Pn label the write-up uses. Tapping a name opens that session task by task, showing the outcome, time, wrong turns, hint level and quote for each of the five, with the two ways of failing kept apart (`timeout` against `demonstrated`)
 - verbatim quotes grouped by task, and debrief answers grouped by question
-- the finished Table 7.10 Markdown and the raw JSON, both ready to copy
+- the finished Table 7.10 Markdown and the raw JSON, both ready to copy, plus downloads
+
+### Downloads
+
+**JSON** hands back every stored record as a file, which is the backup worth taking after each session and the thing to keep alongside the write-up.
+
+**PNG** draws a figure rather than screenshotting the page: title, participant count, a stacked bar per task, and median time, median wait and wrong turns beside it. It renders at three times scale for print and always on a light ground, whatever theme the viewer is using, because the figure ends up in a document rather than on a screen. Text follows the interface language.
 
 ### Importing from another device
 

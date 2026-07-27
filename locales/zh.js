@@ -212,6 +212,11 @@ window.__RES.zh = {
     exportJson: "全部记录的数据",
     copyTable: "复制表格",
     copyJson: "复制数据",
+    dlPng: "下载 PNG",
+    dlJson: "下载 JSON",
+    pngTitle: "引导式可用性会话",
+    pngNote: "这里是计数，不是百分比。五个人用来找问题，不用来测比率。任务用时已剔除等待模型的时间。",
+    pngCols: "独立成功 / 提示后成功 / 失败",
     copied: "已复制",
 
     thMin: "最快",

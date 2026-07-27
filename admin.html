@@ -448,16 +448,26 @@
       '<div class="card">' +
         '<p class="eyebrow"><span class="tag">' + t("exportHeading") + '</span> ' + t("exportTable") + '</p>' +
         '<textarea class="out" id="mdOut" readonly>' + esc(markdown(a)) + '</textarea>' +
-        '<div class="rowbtns"><button class="btn" type="button" id="cpMd">' + t("copyTable") + '</button></div>' +
+        '<div class="rowbtns">' +
+          '<button class="btn" type="button" id="cpMd">' + t("copyTable") + '</button>' +
+          '<button class="btn ghost" type="button" id="dlPng">' + t("dlPng") + '</button>' +
+        '</div>' +
         '<div class="field"><p class="flabel">' + t("exportJson") + '</p>' +
           '<textarea class="out" id="jsOut" readonly style="min-height:150px">' + esc(JSON.stringify(a.all, null, 1)) + '</textarea>' +
-          '<div class="rowbtns"><button class="btn ghost" type="button" id="cpJs">' + t("copyJson") + '</button></div>' +
+          '<div class="rowbtns">' +
+            '<button class="btn ghost" type="button" id="cpJs">' + t("copyJson") + '</button>' +
+            '<button class="btn ghost" type="button" id="dlJson">' + t("dlJson") + '</button>' +
+          '</div>' +
         '</div>' +
       '</div>';
 
     wireSources();
     wireRows();
     wireCopy("cpMd", "mdOut", t("copyTable"));
+    if (el("dlPng")) el("dlPng").onclick = function () { downloadPng(aggregate()); };
+    if (el("dlJson")) el("dlJson").onclick = function () {
+      save(JSON.stringify(allRecords(), null, 1), "application/json", "json");
+    };
     wireCopy("cpJs", "jsOut", t("copyJson"));
   }
 
@@ -557,6 +567,119 @@
       el("okOver").onclick = commit;
       el("noOver").onclick = function () { render(); };
     };
+  }
+
+  // ---------- downloads ----------
+  function stamp() {
+    var d = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes());
+  }
+  function save(data, mime, ext) {
+    var blob = new Blob([data], { type: mime });
+    var url = URL.createObjectURL(blob), a2 = document.createElement("a");
+    a2.href = url; a2.download = "usability-" + stamp() + "." + ext;
+    document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  // Drawn rather than screenshotted, and always on a light ground, because the
+  // figure ends up in a document rather than on the viewer's screen.
+  function downloadPng(a) {
+    var S = 3, W = 900, rowH = 44, headH = 116, footH = 84;
+    var H = headH + IDS.length * rowH + footH;
+    var c = document.createElement("canvas");
+    c.width = W * S; c.height = H * S;
+    var g = c.getContext("2d");
+    g.scale(S, S);
+
+    var INK = "#14181A", INK2 = "#4A5350", INK3 = "#7C8582", RULE = "#CDD2CB",
+        OK = "#1E6B45", WARN = "#8A6212", BAD = "#8E2A1E", SUNK = "#E9EBE7";
+    var UI = ' "Helvetica Neue", Arial, "Microsoft YaHei", "PingFang SC", sans-serif';
+    var NUM = ' Consolas, Menlo, monospace';
+
+    g.fillStyle = "#FFFFFF"; g.fillRect(0, 0, W, H);
+
+    var M = 40, barX = 340, barW = 190, colMed = 690, colWait = 780, right = W - M;
+
+    g.fillStyle = INK; g.font = "700 21px" + UI;
+    g.fillText(t("pngTitle"), M, 46);
+    g.fillStyle = INK3; g.font = "13px" + NUM;
+    g.fillText("n = " + a.n + "   ·   " + new Date().toISOString().slice(0, 10), M, 68);
+
+    g.strokeStyle = RULE; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(M, 84); g.lineTo(right, 84); g.stroke();
+
+    g.fillStyle = INK3; g.font = "11px" + NUM;
+    g.fillText(t("ui:thTask").toUpperCase(), M, 106);
+    g.fillText(t("pngCols").toUpperCase(), barX, 106);
+    g.textAlign = "right";
+    g.fillText(t("thMedian").toUpperCase(), colMed, 106);
+    g.fillText(t("ui:thWait").toUpperCase(), colWait, 106);
+    g.fillText(t("thWrong").toUpperCase(), right, 106);
+    g.textAlign = "left";
+
+    a.rows.forEach(function (r, i) {
+      var y = headH + i * rowH, mid = y + rowH / 2;
+
+      g.strokeStyle = RULE; g.beginPath();
+      g.moveTo(M, y + rowH - 1); g.lineTo(right, y + rowH - 1); g.stroke();
+
+      g.fillStyle = INK; g.font = "700 14px" + NUM;
+      g.fillText(r.id, M, mid + 5);
+      g.fillStyle = INK2; g.font = "14px" + UI;
+      var nm = t("task:" + r.id + "_name");
+      while (g.measureText(nm).width > barX - M - 46 && nm.length > 4) nm = nm.slice(0, -2);
+      g.fillText(nm, M + 34, mid + 5);
+
+      var bx = barX, bh = 16, by = mid - bh / 2;
+      g.fillStyle = SUNK; g.fillRect(bx, by, barW, bh);
+      var seg = [[r.ind, OK], [r.hint, WARN], [r.fail, BAD]];
+      seg.forEach(function (s2) {
+        if (!s2[0]) return;
+        var w = barW * s2[0] / a.n;
+        g.fillStyle = s2[1]; g.fillRect(bx, by, w, bh); bx += w;
+      });
+
+      g.font = "13px" + NUM; g.textAlign = "left";
+      g.fillStyle = r.ind ? OK : INK3;  g.fillText(String(r.ind), barX + barW + 12, mid + 5);
+      g.fillStyle = INK3;               g.fillText("/", barX + barW + 30, mid + 5);
+      g.fillStyle = r.hint ? WARN : INK3; g.fillText(String(r.hint), barX + barW + 40, mid + 5);
+      g.fillStyle = INK3;               g.fillText("/", barX + barW + 58, mid + 5);
+      g.fillStyle = r.fail ? BAD : INK3;  g.fillText(String(r.fail), barX + barW + 68, mid + 5);
+
+      g.textAlign = "right"; g.fillStyle = INK2;
+      g.fillText(r.med === null ? "—" : r.med + " s", colMed, mid + 5);
+      g.fillStyle = r.medWait === null ? INK3 : INK2;
+      g.fillText(r.medWait === null ? "—" : r.medWait + " s", colWait, mid + 5);
+      g.fillStyle = r.wrong ? INK2 : INK3;
+      g.fillText(String(r.wrong), right, mid + 5);
+      g.textAlign = "left";
+    });
+
+    var fy = headH + IDS.length * rowH + 26;
+    [[OK, t("ui:outIndependent")], [WARN, t("ui:outWithHint")], [BAD, t("ui:thFailed")]].forEach(function (l, i) {
+      var x = M + i * 150;
+      g.fillStyle = l[0]; g.fillRect(x, fy - 9, 10, 10);
+      g.fillStyle = INK2; g.font = "12px" + UI; g.fillText(l[1], x + 16, fy);
+    });
+    g.fillStyle = INK3; g.font = "12px" + UI;
+    var note = t("pngNote"), maxw = right - M, line = "", ly = fy + 26;
+    // Wrapped without a lookbehind, which older mobile Safari cannot even parse.
+    var spaced = note.indexOf(" ") >= 0;
+    var units = spaced ? note.split(" ") : note.split(""), joiner = spaced ? " " : "";
+    units.forEach(function (w) {
+      var test = line ? line + joiner + w : w;
+      if (g.measureText(test).width > maxw) { g.fillText(line, M, ly); ly += 17; line = w; }
+      else line = test;
+    });
+    if (line) g.fillText(line, M, ly);
+
+    c.toBlob(function (b) {
+      var url = URL.createObjectURL(b), a2 = document.createElement("a");
+      a2.href = url; a2.download = "usability-" + stamp() + ".png";
+      document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }, "image/png");
   }
 
   function markdown(a) {
