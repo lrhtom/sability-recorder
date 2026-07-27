@@ -11,7 +11,7 @@ Built for the guided sessions reported in §7.3.2 of the LD6053 dissertation. Th
 Five fixed tasks. Four measures per task:
 
 - **Outcome** — derived from the hint level: L0 independent · L1/L2 with hint · L3 or timeout counts as failed
-- **Time on task** — built-in stopwatch, five-minute cap, turns red at the limit
+- **Time on task** — built-in stopwatch with a **per-task cap**, turning red at the limit
 - **Wrong turns** — wrong button, wrong page, duplicate submit; one each
 - **Verbatim quote** — the participant's actual words
 
@@ -68,7 +68,27 @@ No skipping levels. Wait 30 seconds after each hint before deciding to escalate.
 | L1 | "There is somewhere else on this page worth looking at." | With hint |
 | L2 | "Try the navigation on the left." (a direction, never the button) | With hint |
 | L3 | demonstrate it | Failed |
-| — | five minutes elapsed | Failed |
+| — | the task's cap elapsed | Failed |
+
+## Time caps, and why they differ
+
+| Task | Cap | Why |
+|---|---|---|
+| T1 read the daily load | 5 min | navigation and comprehension only |
+| T2 generate a passage and answer it | **10 min** | a full IELTS passage has to be read and answered; five minutes would fail almost everyone for reasons that have nothing to do with the interface |
+| T3 add an unknown word | 5 min | pure discovery |
+| T4 review it and read the interval | 5 min | one interaction plus reading the scheduler's output |
+| T5 submit writing and read the feedback | 6 min | four dimensions to read and compare |
+
+A cap that most people breach measures the protocol rather than the product, so the caps are set from what each task actually asks of a person.
+
+## AI wait is banked separately
+
+T2 and T5 make the learner wait on a model call. The deployed platform's own telemetry puts that wait at a median of 15 s, a 95th percentile of 80 s and a maximum of 169 s, which is long enough to dominate a task time and turn a usability measure into a latency measure.
+
+So those two tasks carry a second counter. While the model is generating, park the clock on **AI wait**: the task clock stops, the wait clock runs, and the cap ignores it entirely. Time on task therefore means time the person spent working, and the wait is reported in its own column beside it.
+
+Waiting still deserves a number, because waiting is part of the experience. It just is not evidence about the interface.
 
 Never say "yes", "no", or "you clicked the wrong thing". No prompting by tone or expression either.
 

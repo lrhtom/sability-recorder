@@ -33,8 +33,14 @@
 
   var KEY = "usability_recorder_v1";
   var LANG_KEY = "usability_recorder_lang";
-  var LIMIT = 300;
+  // One cap per task rather than one for all five. T2 has a learner read a full
+  // passage and answer it, which no honest protocol squeezes into five minutes.
+  var CAPS = { T1: 300, T2: 600, T3: 300, T4: 300, T5: 360 };
+  // Tasks that make the learner wait on a model call. Waiting is the model's
+  // time, not the interface's, so it is banked separately and ignored by the cap.
+  var AI_WAIT = { T2: true, T5: true };
   var IDS = ["T1", "T2", "T3", "T4", "T5"];
+  function capOf(i) { return CAPS[IDS[i]]; }
   var DEBRIEF_KEYS = ["stuck", "useful", "change"];
 
   // ---------- i18n ----------
@@ -76,7 +82,7 @@
   function blank() {
     return {
       name: "", date: today(),
-      tasks: IDS.map(function () { return { secs:0, running:false, startedAt:0, wrong:0, hint:null, quote:"" }; }),
+      tasks: IDS.map(function () { return { secs:0, running:false, startedAt:0, wait:0, waiting:false, waitStartedAt:0, wrong:0, hint:null, quote:"" }; }),
       debrief: { stuck:"", useful:"", change:"" }
     };
   }
@@ -93,15 +99,20 @@
   }
 
   function liveSecs(x) { return x.running ? x.secs + Math.floor((Date.now() - x.startedAt) / 1000) : x.secs; }
-  function outcome(x) {
-    if (liveSecs(x) >= LIMIT) return { key:"failed", en:"failed (timeout)", k:"bad",  label:t("outFailTimeout") };
+  function liveWait(x) { return x.waiting ? (x.wait || 0) + Math.floor((Date.now() - x.waitStartedAt) / 1000) : (x.wait || 0); }
+  function bank(x) {
+    if (x.running) { x.secs = liveSecs(x); x.running = false; }
+    if (x.waiting) { x.wait = liveWait(x); x.waiting = false; }
+  }
+  function outcome(x, i) {
+    if (liveSecs(x) >= capOf(i === undefined ? s.tasks.indexOf(x) : i)) return { key:"failed", en:"failed (timeout)", k:"bad",  label:t("outFailTimeout") };
     if (x.hint === 3)         return { key:"failed", en:"failed (demonstrated)", k:"bad", label:t("outFailDemo") };
     if (x.hint === 1 || x.hint === 2) return { key:"hint", en:"with hint", k:"warn", label:t("outWithHint") };
     if (x.hint === 0)         return { key:"independent", en:"independent", k:"ok", label:t("outIndependent") };
     return { key:"none", en:"not recorded", k:"none", label:t("outNotRecorded") };
   }
   function mmss(sec) { var m = Math.floor(sec/60), r = sec%60; return m + ":" + (r<10?"0":"") + r; }
-  function done(i) { var x = s.tasks[i]; return x.hint !== null || liveSecs(x) >= LIMIT; }
+  function done(i) { var x = s.tasks[i]; return x.hint !== null || liveSecs(x) >= capOf(i); }
   function esc(x) { return String(x).replace(/[&<>"]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
   function median(a) {
     if (!a.length) return null;
@@ -114,10 +125,10 @@
     if (tick) return;
     tick = setInterval(function () {
       var x = s.tasks[step-1];
-      if (!x || !x.running) return;
+      if (!x || (!x.running && !x.waiting)) return;
       paintClock();
       var el = document.getElementById("over");
-      if (el) el.setAttribute("data-on", liveSecs(x) >= LIMIT ? "1" : "0");
+      if (el) el.setAttribute("data-on", liveSecs(x) >= capOf(step-1) ? "1" : "0");
     }, 250);
   }
   function stopLoop() { clearInterval(tick); tick = null; }
@@ -127,7 +138,10 @@
     var sec = liveSecs(x);
     c.firstChild.nodeValue = mmss(sec);
     c.setAttribute("data-run", x.running ? "1" : "0");
-    c.setAttribute("data-over", sec >= LIMIT ? "1" : "0");
+    c.setAttribute("data-wait", x.waiting ? "1" : "0");
+    c.setAttribute("data-over", sec >= capOf(step-1) ? "1" : "0");
+    var w = document.getElementById("waitClock");
+    if (w) w.textContent = t("waitShort") + " " + mmss(liveWait(x));
   }
 
   function bindText(id, fn) {
@@ -247,7 +261,7 @@
   }
 
   function renderTask(i) {
-    var id = IDS[i], x = s.tasks[i], o = outcome(x);
+    var id = IDS[i], x = s.tasks[i], o = outcome(x, i);
     var caps = [t("task:hintNone"), t("task:hintDirection"), t("task:hintLocation"), t("task:hintDemo")];
     var segs = caps.map(function (cap, k) {
       return '<button type="button" data-hint="' + k + '" aria-pressed="' + (x.hint === k) + '">' +
@@ -283,7 +297,7 @@
             'L2 <code>' + esc(t("script:L2")) + '</code> ' + t("ladderNote") + '<br>' +
             t("ladderDemo") + '</div>' +
           '<div style="margin-top:14px"><span class="chip ' + o.k + '">' + o.label + '</span></div>' +
-          '<div class="over" id="over" data-on="' + (liveSecs(x) >= LIMIT ? "1" : "0") + '">' + t("timeoutBanner") + '</div>' +
+          '<div class="over" id="over" data-on="' + (liveSecs(x) >= capOf(i) ? "1" : "0") + '">' + t("timeoutBanner", { cap: mmss(capOf(i)) }) + '</div>' +
         '</div>' +
         '<div class="field">' +
           '<p class="flabel">' + t("verbatim") + ' <span class="hint">' + t("verbatimHint") + '</span></p>' +
@@ -331,19 +345,21 @@
   function aggregate() {
     var all = store(), names = Object.keys(all).sort();
     var rows = IDS.map(function (id, i) {
-      var ind = 0, hint = 0, fail = 0, none = 0, times = [], wrong = 0, quotes = [];
+      var ind = 0, hint = 0, fail = 0, none = 0, times = [], waits = [], wrong = 0, quotes = [];
       names.forEach(function (n) {
-        var x = all[n].tasks[i], o = outcome(x);
+        var x = all[n].tasks[i], o = outcome(x, i);
         if (o.key === "independent") ind++;
         else if (o.key === "hint") hint++;
         else if (o.key === "failed") fail++;
         else { none++; return; }
         times.push(liveSecs(x));
+        if (AI_WAIT[id]) waits.push(liveWait(x));
         wrong += x.wrong;
         if ((x.quote || "").trim()) quotes.push({ who: n, text: x.quote.trim() });
       });
       return { id: id, ind: ind, hint: hint, fail: fail, none: none,
-               med: median(times), wrong: wrong, quotes: quotes };
+               med: median(times), medWait: waits.length ? median(waits) : null,
+               wrong: wrong, quotes: quotes };
     });
     return { n: names.length, names: names, rows: rows, all: all };
   }
@@ -363,6 +379,7 @@
         '<td class="' + (r.hint ? "" : "zero") + '">' + r.hint + ' / ' + a.n + '</td>' +
         '<td class="' + (r.fail ? "bad" : "zero") + '">' + r.fail + ' / ' + a.n + '</td>' +
         '<td>' + (r.med === null ? "—" : r.med + " s") + '</td>' +
+        '<td class="' + (r.medWait === null ? "zero" : "") + '">' + (r.medWait === null ? "—" : r.medWait + " s") + '</td>' +
         '<td class="' + (r.wrong ? "" : "zero") + '">' + r.wrong + '</td></tr>';
     }).join("");
 
@@ -379,7 +396,7 @@
         '<h2>' + t("analysisHeading") + '</h2>' +
         '<div class="tblwrap"><table class="agg"><thead><tr>' +
           '<th>' + t("thTask") + '</th><th>' + t("outIndependent") + '</th><th>' + t("outWithHint") + '</th>' +
-          '<th>' + t("thFailed") + '</th><th>' + t("thMedianShort") + '</th><th>' + t("wrongTurns") + '</th>' +
+          '<th>' + t("thFailed") + '</th><th>' + t("thMedianShort") + '</th><th>' + t("thWait") + '</th><th>' + t("wrongTurns") + '</th>' +
         '</tr></thead><tbody>' + body + '</tbody></table></div>' +
         '<p class="note">' + t("analysisNote") + '</p>' +
       '</div>' +
@@ -394,12 +411,15 @@
     L.push(t("expCap2"));
     L.push("");
     L.push(t("expHead"));
-    L.push("|---|:---:|:---:|:---:|---:|---:|");
+    L.push("|---|:---:|:---:|:---:|---:|---:|---:|");
     a.rows.forEach(function (r) {
       L.push("| " + r.id + " " + t("task:" + r.id + "_name") + " | " +
         r.ind + " of " + a.n + " | " + r.hint + " of " + a.n + " | " + r.fail + " of " + a.n + " | " +
-        (r.med === null ? "—" : r.med + " s") + " | " + r.wrong + " |");
+        (r.med === null ? "—" : r.med + " s") + " | " +
+        (r.medWait === null ? "—" : r.medWait + " s") + " | " + r.wrong + " |");
     });
+    L.push("");
+    L.push(t("expCapNote", { caps: IDS.map(function (id, k) { return id + " " + mmss(capOf(k)); }).join(", ") }));
     L.push("");
     L.push(t("expParticipants") + " " + a.names.map(function (n, i) { return "P" + (i + 1) + " = " + n; }).join(", "));
     L.push("");
@@ -430,8 +450,9 @@
     L.push(t("expSessHead"));
     L.push("|---|---|---:|---:|---|---|");
     IDS.forEach(function (id, i) {
-      var x = r.tasks[i], o = outcome(x);
+      var x = r.tasks[i], o = outcome(x, i);
       L.push("| " + id + " " + t("task:" + id + "_name") + " | " + o.label + " | " + liveSecs(x) + " s | " +
+             (AI_WAIT[id] ? liveWait(x) + " s" : "—") + " | " +
              x.wrong + " | " + (x.hint === null ? "—" : "L" + x.hint) + " | " +
              ((x.quote || "").replace(/\n/g, " ").replace(/\|/g, "/") || "—") + " |");
     });
@@ -446,7 +467,7 @@
       name: r.name, date: r.date,
       tasks: IDS.map(function (id, i) {
         var x = r.tasks[i];
-        return { id:id, secs:liveSecs(x), wrong:x.wrong, hint:x.hint, outcome:outcome(x).en, quote:x.quote };
+        return { id:id, secs:liveSecs(x), wait:liveWait(x), wrong:x.wrong, hint:x.hint, outcome:outcome(x, i).en, quote:x.quote };
       }),
       debrief: r.debrief
     }, null, 1));
@@ -487,42 +508,62 @@
       return;
     }
 
-    var x = s.tasks[step-1];
+    var i = step - 1, x = s.tasks[i], id = IDS[i];
     var clock = document.createElement("span");
     clock.className = "clock"; clock.id = "clock";
     clock.appendChild(document.createTextNode(mmss(liveSecs(x))));
-    var u = document.createElement("span"); u.className = "u"; u.textContent = " / 5:00";
+    var u = document.createElement("span"); u.className = "u"; u.textContent = " / " + mmss(capOf(i));
     clock.appendChild(u);
     bar.appendChild(clock);
 
-    if (!x.running) {
+    if (AI_WAIT[id]) {
+      var wc = document.createElement("span");
+      wc.className = "waitclock"; wc.id = "waitClock";
+      wc.textContent = t("waitShort") + " " + mmss(liveWait(x));
+      if (x.waiting) wc.setAttribute("data-on", "1");
+      bar.appendChild(wc);
+    }
+
+    if (x.waiting) {
+      bar.appendChild(mkBtn(t("btnWaitEnd"), "btn run", function () {
+        x.wait = liveWait(x); x.waiting = false;
+        x.running = true; x.startedAt = Date.now();
+        save(); renderBar(); startLoop();
+      }));
+    } else if (!x.running) {
       bar.appendChild(mkBtn(x.secs === 0 ? t("btnStartTimer") : t("btnResume"), "btn run", function () {
         x.running = true; x.startedAt = Date.now(); save(); renderBar(); startLoop();
       }));
     } else {
+      if (AI_WAIT[id]) {
+        bar.appendChild(mkBtn(t("btnWaitStart"), "btn wait", function () {
+          x.secs = liveSecs(x); x.running = false;
+          x.waiting = true; x.waitStartedAt = Date.now();
+          save(); renderBar(); startLoop();
+        }));
+      }
       bar.appendChild(mkBtn(t("btnStop"), "btn", function () {
-        x.secs = liveSecs(x); x.running = false; save(); renderBar(); paintClock();
+        bank(x); save(); renderBar(); paintClock();
       }));
     }
     bar.appendChild(mkBtn(step === 5 ? t("btnWrapUp") : t("btnNext"), "btn ghost", function () {
-      if (x.running) { x.secs = liveSecs(x); x.running = false; }
-      save(); go(step + 1);
+      bank(x); save(); go(step + 1);
     }));
 
     paintClock();
-    if (x.running) startLoop(); else stopLoop();
+    if (x.running || x.waiting) startLoop(); else stopLoop();
   }
 
   function go(n) {
     var cur = s.tasks[step-1];
-    if (cur && cur.running) { cur.secs = liveSecs(cur); cur.running = false; }
+    if (cur) bank(cur);
     step = Math.max(0, Math.min(7, n));
     save(); render(); window.scrollTo(0, 0);
   }
 
   window.addEventListener("beforeunload", function () {
     var cur = s.tasks[step-1];
-    if (cur && cur.running) { cur.secs = liveSecs(cur); cur.running = false; save(); }
+    if (cur && (cur.running || cur.waiting)) { bank(cur); save(); }
   });
 
   document.documentElement.setAttribute("lang", i18next.language === "zh" ? "zh-CN" : "en");

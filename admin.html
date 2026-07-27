@@ -38,8 +38,10 @@
   var MERGE_KEY = "usability_recorder_merged_v1";
   var LANG_KEY = "usability_recorder_lang";
   var UNLOCK_KEY = "usability_recorder_admin";
-  var LIMIT = 300;
+  var CAPS = { T1: 300, T2: 600, T3: 300, T4: 300, T5: 360 };
+  var AI_WAIT = { T2: true, T5: true };
   var IDS = ["T1", "T2", "T3", "T4", "T5"];
+  function capOf(i) { return CAPS[IDS[i]]; }
   var DEBRIEF_KEYS = ["stuck", "useful", "change"];
 
   // ---------- i18n ----------
@@ -68,8 +70,9 @@
     return b.length % 2 ? b[m] : Math.round((b[m-1] + b[m]) / 2);
   }
   function secsOf(x) { return x.running ? x.secs + Math.floor((Date.now() - x.startedAt) / 1000) : (x.secs || 0); }
-  function outcomeOf(x) {
-    if (secsOf(x) >= LIMIT) return "failed";
+  function waitOf(x) { return x.waiting ? (x.wait || 0) + Math.floor((Date.now() - x.waitStartedAt) / 1000) : (x.wait || 0); }
+  function outcomeOf(x, i) {
+    if (secsOf(x) >= capOf(i)) return "failed";
     if (x.hint === 3) return "failed";
     if (x.hint === 1 || x.hint === 2) return "hint";
     if (x.hint === 0) return "independent";
@@ -77,8 +80,8 @@
   }
   // Same coding as outcomeOf, but keeps the two ways of failing apart, which
   // only matters when reading one session rather than aggregating.
-  function outcomeDetail(x) {
-    if (secsOf(x) >= LIMIT) return { cls:"bad",  label:t("ui:outFailTimeout") };
+  function outcomeDetail(x, i) {
+    if (secsOf(x) >= capOf(i)) return { cls:"bad",  label:t("ui:outFailTimeout") };
     if (x.hint === 3)       return { cls:"bad",  label:t("ui:outFailDemo") };
     if (x.hint === 1 || x.hint === 2) return { cls:"warn", label:t("ui:outWithHint") };
     if (x.hint === 0)       return { cls:"ok",   label:t("ui:outIndependent") };
@@ -130,6 +133,7 @@
         tasks: IDS.map(function (id, i) {
           var s = o.tasks[i] || {};
           return { secs: Number(s.secs) || 0, running: false, startedAt: 0,
+                   wait: Number(s.wait) || 0, waiting: false, waitStartedAt: 0,
                    wrong: Number(s.wrong) || 0,
                    hint: (s.hint === 0 || s.hint === 1 || s.hint === 2 || s.hint === 3) ? s.hint : null,
                    quote: String(s.quote || "") };
@@ -176,25 +180,27 @@
   function aggregate() {
     var all = allRecords(), names = Object.keys(all).sort();
     var rows = IDS.map(function (id, i) {
-      var ind = 0, hint = 0, fail = 0, none = 0, times = [], wrong = 0, quotes = [];
+      var ind = 0, hint = 0, fail = 0, none = 0, times = [], waits = [], wrong = 0, quotes = [];
       names.forEach(function (n) {
-        var x = all[n].tasks[i], o = outcomeOf(x);
+        var x = all[n].tasks[i], o = outcomeOf(x, i);
         if (o === "independent") ind++;
         else if (o === "hint") hint++;
         else if (o === "failed") fail++;
         else { none++; return; }
         times.push(secsOf(x));
+        if (AI_WAIT[id]) waits.push(waitOf(x));
         wrong += x.wrong;
         if ((x.quote || "").trim()) quotes.push({ who: n, text: x.quote.trim() });
       });
       times.sort(function (p, q) { return p - q; });
       return { id: id, ind: ind, hint: hint, fail: fail, none: none, wrong: wrong, quotes: quotes,
                med: median(times), min: times.length ? times[0] : null,
-               max: times.length ? times[times.length - 1] : null };
+               max: times.length ? times[times.length - 1] : null,
+               medWait: waits.length ? median(waits) : null };
     });
     var people = names.map(function (n) {
       var r = all[n], recorded = 0, tt = 0, w = 0;
-      r.tasks.forEach(function (x) { if (outcomeOf(x) !== "none") { recorded++; tt += secsOf(x); w += x.wrong; } });
+      r.tasks.forEach(function (x, i) { if (outcomeOf(x, i) !== "none") { recorded++; tt += secsOf(x); w += x.wrong; } });
       return { name: n, date: r.date, recorded: recorded, time: tt, wrong: w };
     });
     return { n: names.length, names: names, rows: rows, people: people, all: all };
@@ -285,6 +291,7 @@
         '<td>' + (r.min === null ? "—" : r.min + " s") + '</td>' +
         '<td>' + (r.med === null ? "—" : r.med + " s") + '</td>' +
         '<td>' + (r.max === null ? "—" : r.max + " s") + '</td>' +
+        '<td class="' + (r.medWait === null ? "zero" : "") + '">' + (r.medWait === null ? "—" : r.medWait + " s") + '</td>' +
         '<td class="' + (r.wrong ? "" : "zero") + '">' + r.wrong + '</td></tr>';
     }).join("");
 
@@ -301,11 +308,12 @@
     var people = a.people.map(function (p, i) {
       var rec = a.all[p.name];
       var detail = IDS.map(function (id, k) {
-        var x = rec.tasks[k], o = outcomeDetail(x);
+        var x = rec.tasks[k], o = outcomeDetail(x, k);
         return '<tr><td><span class="tid">' + id + '</span><span class="tnm">' +
             esc(t("task:" + id + "_name")) + '</span></td>' +
           '<td class="oc-' + o.cls + '">' + o.label + '</td>' +
           '<td>' + (x.hint === null && secsOf(x) === 0 ? "—" : mmss(secsOf(x))) + '</td>' +
+          '<td>' + (AI_WAIT[id] ? mmss(waitOf(x)) : "—") + '</td>' +
           '<td>' + x.wrong + '</td>' +
           '<td>' + (x.hint === null ? "—" : "L" + x.hint) + '</td>' +
           '<td class="q">' + (esc((x.quote || "").trim()) || "—") + '</td></tr>';
@@ -320,7 +328,7 @@
         '<tr class="det" id="det' + i + '" hidden><td colspan="6">' +
           '<table class="detail"><thead><tr>' +
             '<th>' + t("ui:thTask") + '</th><th>' + t("thOutcome") + '</th>' +
-            '<th>' + t("thTime") + '</th><th>' + t("thWrong") + '</th>' +
+            '<th>' + t("thTime") + '</th><th>' + t("ui:thWait") + '</th><th>' + t("thWrong") + '</th>' +
             '<th>' + t("thHint") + '</th><th>' + t("thQuote") + '</th>' +
           '</tr></thead><tbody>' + detail + '</tbody></table>' +
         '</td></tr>';
@@ -345,7 +353,8 @@
         '<div class="tblwrap"><table class="agg"><thead><tr><th>' + t("ui:thTask") + '</th>' +
           '<th>' + t("ui:outIndependent") + '</th><th>' + t("ui:outWithHint") + '</th><th>' + t("ui:thFailed") + '</th>' +
           '<th>' + t("thMin") + '</th><th>' + t("thMedian") + '</th><th>' + t("thMax") + '</th>' +
-          '<th>' + t("thWrong") + '</th></tr></thead><tbody>' + perTask + '</tbody></table></div>' +
+          '<th>' + t("ui:thWait") + '</th><th>' + t("thWrong") + '</th></tr></thead><tbody>' + perTask + '</tbody></table></div>' +
+        '<p class="note" style="border:0;padding-top:0;margin-top:8px">' + t("ui:waitHint") + '</p>' +
         '<p class="note">' + t("interpret") + '</p>' +
       '</div>' +
 
@@ -463,12 +472,15 @@
     L.push(t("ui:expCap2"));
     L.push("");
     L.push(t("ui:expHead"));
-    L.push("|---|:---:|:---:|:---:|---:|---:|");
+    L.push("|---|:---:|:---:|:---:|---:|---:|---:|");
     a.rows.forEach(function (r) {
       L.push("| " + r.id + " " + t("task:" + r.id + "_name") + " | " +
         r.ind + " of " + a.n + " | " + r.hint + " of " + a.n + " | " + r.fail + " of " + a.n + " | " +
-        (r.med === null ? "—" : r.med + " s") + " | " + r.wrong + " |");
+        (r.med === null ? "—" : r.med + " s") + " | " +
+        (r.medWait === null ? "—" : r.medWait + " s") + " | " + r.wrong + " |");
     });
+    L.push("");
+    L.push(t("ui:expCapNote", { caps: IDS.map(function (id, k) { return id + " " + mmss(capOf(k)); }).join(", ") }));
     L.push("");
     L.push(t("ui:expRange"));
     a.rows.forEach(function (r) {

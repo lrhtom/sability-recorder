@@ -5,7 +5,7 @@ window.__RES = window.__RES || {};
 window.__RES.en = {
   ui: {
     appTitle: "Guided Session Recorder",
-    appSub: "Usability · 5 tasks · 5 min cap",
+    appSub: "Usability · 5 tasks · per-task caps",
     langName: "English",
 
     stepSetup: "Setup",
@@ -41,7 +41,12 @@ window.__RES.en = {
     hintLevelHint: "no skipping levels; wait 30 s before escalating",
     ladderNote: "(a direction, never the button itself)",
     ladderDemo: "L3 demonstrate it = counts as failed",
-    timeoutBanner: "Five minutes reached. This task is failed. Stop the clock and move on.",
+    timeoutBanner: "The {{cap}} cap for this task is reached. It counts as failed. Stop the clock and move on.",
+    btnWaitStart: "AI wait",
+    btnWaitEnd: "Wait over",
+    waitShort: "wait",
+    thWait: "AI wait",
+    waitHint: "While the model is generating, park the clock here. Waiting is the model's time, not the interface's, and it does not count towards the cap.",
     verbatim: "Verbatim quote",
     verbatimHint: "word for word, not paraphrased",
     verbatimPlaceholder: "\"I thought this one was the search box...\"",
@@ -101,9 +106,10 @@ window.__RES.en = {
     langSwitch: "ZH",
 
     expCap1: "*Table 7.10 — Guided usability sessions, n = {{n}}. Success is coded independently",
-    expCap2: "(no hint), with hint (levels 1 to 2), or failed (demonstrated or five-minute timeout).*",
-    expHead: "| Task | Independent | With hint | Failed | Median time | Wrong turns |",
-    expSessHead: "| Task | Outcome | Time | Wrong turns | Hint | Verbatim |",
+    expCap2: "(no hint), with hint (levels 1 to 2), or failed (demonstrated or timed out against the per-task cap).*",
+    expCapNote: "Time on task excludes time spent waiting for the model, which is reported separately. Caps: {{caps}}.",
+    expHead: "| Task | Independent | With hint | Failed | Median time | Median AI wait | Wrong turns |",
+    expSessHead: "| Task | Outcome | Time | AI wait | Wrong turns | Hint | Verbatim |",
     expRange: "Time range per task, fastest to slowest:",
     expParticipants: "Participants, in the order reported:",
     expVerbatimH: "**Verbatim, grouped by task**",

@@ -4,7 +4,7 @@ window.__RES = window.__RES || {};
 window.__RES.zh = {
   ui: {
     appTitle: "引导式会话记录器",
-    appSub: "可用性 · 5 个任务 · 5 分钟上限",
+    appSub: "可用性 · 5 个任务 · 分任务上限",
     langName: "中文",
 
     stepSetup: "准备",
@@ -40,7 +40,12 @@ window.__RES.zh = {
     hintLevelHint: "不可跳级，给完等 30 秒再升",
     ladderNote: "（指方向，不指具体按钮）",
     ladderDemo: "L3 直接演示 = 记失败",
-    timeoutBanner: "满 5 分钟，本任务记为失败。停表，进下一个。",
+    timeoutBanner: "本任务的 {{cap}} 上限到了，记为失败。停表，进下一个。",
+    btnWaitStart: "AI 等待",
+    btnWaitEnd: "等待结束",
+    waitShort: "等待",
+    thWait: "AI 等待",
+    waitHint: "模型在生成的时候，把秒表挂到这里。等待是模型的时间，不是界面的时间，不计入上限。",
     verbatim: "关键事件原话",
     verbatimHint: "逐字记，别转述",
     verbatimPlaceholder: "他说：「我以为这个是搜索……」",
@@ -99,9 +104,10 @@ window.__RES.zh = {
     langSwitch: "EN",
 
     expCap1: "*表 7.10：引导式可用性会话，n = {{n}}。完成情况分三类，",
-    expCap2: "独立成功（无提示）、提示后成功（L1 至 L2）、失败（需演示或满 5 分钟）。*",
-    expHead: "| 任务 | 独立成功 | 提示后成功 | 失败 | 用时中位数 | 走错次数 |",
-    expSessHead: "| 任务 | 完成情况 | 用时 | 走错 | 提示 | 原话 |",
+    expCap2: "独立成功（无提示）、提示后成功（L1 至 L2）、失败（需演示或超过该任务上限）。*",
+    expCapNote: "任务用时不含等待模型的时间，等待另行报告。各任务上限：{{caps}}。",
+    expHead: "| 任务 | 独立成功 | 提示后成功 | 失败 | 用时中位数 | 等待中位数 | 走错次数 |",
+    expSessHead: "| 任务 | 完成情况 | 用时 | AI 等待 | 走错 | 提示 | 原话 |",
     expRange: "各任务用时区间，最快到最慢：",
     expParticipants: "参与者，按报告顺序：",
     expVerbatimH: "**按任务归拢的原话**",
