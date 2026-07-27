@@ -221,10 +221,19 @@
     return found;
   }
 
+  // The mean sits beside the median rather than instead of it. With five values
+  // one slow participant moves a mean to a place nobody actually sat, so the
+  // median leads and the mean is there to be checked against it.
+  function mean(a) {
+    if (!a.length) return null;
+    return Math.round(a.reduce(function (s, v) { return s + v; }, 0) / a.length);
+  }
+
   function aggregate() {
     var all = allRecords(), names = Object.keys(all).sort();
     var rows = IDS.map(function (id, i) {
       var ind = 0, hint = 0, fail = 0, none = 0, times = [], waits = [], wrong = 0, quotes = [];
+      var hintN = { 0: 0, 1: 0, 2: 0, 3: 0 }, pts = [];
       names.forEach(function (n) {
         var x = all[n].tasks[i], o = outcomeOf(x, i);
         if (o === "independent") ind++;
@@ -232,20 +241,32 @@
         else if (o === "failed") fail++;
         else { none++; return; }
         times.push(secsOf(x));
+        pts.push({ who: n, secs: secsOf(x), wait: waitOf(x), cls: outcomeDetail(x, i).cls });
         if (waitOf(x)) waits.push(waitOf(x));
+        if (x.hint !== null) hintN[x.hint]++;
         wrong += x.wrong;
         if ((x.quote || "").trim()) quotes.push({ who: n, text: x.quote.trim() });
       });
       times.sort(function (p, q) { return p - q; });
+      waits.sort(function (p, q) { return p - q; });
       return { id: id, ind: ind, hint: hint, fail: fail, none: none, wrong: wrong, quotes: quotes,
-               med: median(times), min: times.length ? times[0] : null,
+               times: times, waits: waits, hintN: hintN, pts: pts, k: times.length,
+               med: median(times), avg: mean(times),
+               min: times.length ? times[0] : null,
                max: times.length ? times[times.length - 1] : null,
-               medWait: waits.length ? median(waits) : null };
+               medWait: waits.length ? median(waits) : null,
+               avgWait: waits.length ? mean(waits) : null,
+               maxWait: waits.length ? waits[waits.length - 1] : null };
     });
     var people = names.map(function (n) {
-      var r = all[n], recorded = 0, tt = 0, w = 0;
-      r.tasks.forEach(function (x, i) { if (outcomeOf(x, i) !== "none") { recorded++; tt += secsOf(x); w += x.wrong; } });
-      return { name: n, date: r.date, recorded: recorded, time: tt, wrong: w };
+      var r = all[n], recorded = 0, tt = 0, w = 0, wt = 0, mix = { ok: 0, warn: 0, bad: 0 };
+      r.tasks.forEach(function (x, i) {
+        var o = outcomeOf(x, i);
+        if (o === "none") return;
+        recorded++; tt += secsOf(x); w += x.wrong; wt += waitOf(x);
+        mix[o === "independent" ? "ok" : (o === "hint" ? "warn" : "bad")]++;
+      });
+      return { name: n, date: r.date, recorded: recorded, time: tt, wrong: w, wait: wt, mix: mix };
     });
     return { n: names.length, names: names, rows: rows, people: people, all: all };
   }
@@ -350,6 +371,7 @@
         '<td class="' + (r.fail ? "bad" : "zero") + '">' + r.fail + ' / ' + a.n + '</td>' +
         '<td>' + (r.min === null ? "—" : r.min + " s") + '</td>' +
         '<td>' + (r.med === null ? "—" : r.med + " s") + '</td>' +
+        '<td class="' + (r.avg === null ? "zero" : "") + '">' + (r.avg === null ? "—" : r.avg + " s") + '</td>' +
         '<td>' + (r.max === null ? "—" : r.max + " s") + '</td>' +
         '<td class="' + (r.medWait === null ? "zero" : "") + '">' + (r.medWait === null ? "—" : r.medWait + " s") + '</td>' +
         '<td class="' + (r.wrong ? "" : "zero") + '">' + r.wrong + '</td></tr>';
@@ -411,9 +433,10 @@
         '<p class="eyebrow"><span class="tag">' + t("perTaskHeading") + '</span> n = ' + a.n + '</p>' +
         '<div class="tblwrap"><table class="agg"><thead><tr><th>' + t("ui:thTask") + '</th>' +
           '<th>' + t("ui:outIndependent") + '</th><th>' + t("ui:outWithHint") + '</th><th>' + t("ui:thFailed") + '</th>' +
-          '<th>' + t("thMin") + '</th><th>' + t("thMedian") + '</th><th>' + t("thMax") + '</th>' +
+          '<th>' + t("thMin") + '</th><th>' + t("thMedian") + '</th><th>' + t("thMean") + '</th><th>' + t("thMax") + '</th>' +
           '<th>' + t("ui:thWait") + '</th><th>' + t("thWrong") + '</th></tr></thead><tbody>' + perTask + '</tbody></table></div>' +
         '<p class="note" style="border:0;padding-top:0;margin-top:8px">' + t("ui:waitHint") + '</p>' +
+        '<p class="note">' + t("meanNote") + '</p>' +
         '<p class="note">' + t("interpret") + '</p>' +
       '</div>' +
 
@@ -452,6 +475,7 @@
           '<button class="btn" type="button" id="cpMd">' + t("copyTable") + '</button>' +
           '<button class="btn ghost" type="button" id="dlPng">' + t("dlPng") + '</button>' +
           '<button class="btn ghost" type="button" id="dlRaw">' + t("dlPngRaw") + '</button>' +
+          '<button class="btn ghost" type="button" id="dlCharts">' + t("dlPngCharts") + '</button>' +
         '</div>' +
         '<div class="field"><p class="flabel">' + t("exportJson") + '</p>' +
           '<textarea class="out" id="jsOut" readonly style="min-height:150px">' + esc(JSON.stringify(a.all, null, 1)) + '</textarea>' +
@@ -467,6 +491,7 @@
     wireCopy("cpMd", "mdOut", t("copyTable"));
     if (el("dlPng")) el("dlPng").onclick = function () { downloadPng(aggregate()); };
     if (el("dlRaw")) el("dlRaw").onclick = function () { downloadRawPng(aggregate()); };
+    if (el("dlCharts")) el("dlCharts").onclick = function () { downloadChartsPng(aggregate()); };
     if (el("dlJson")) el("dlJson").onclick = function () {
       save(JSON.stringify(allRecords(), null, 1), "application/json", "records", "json");
     };
@@ -922,6 +947,257 @@
     shoot(c, "observations");
   }
 
+  // Four panels, all of them showing every value rather than a summary of it.
+  // Five participants is small enough that a bar of means would hide the only
+  // thing worth seeing, which is who sat where.
+  function downloadChartsPng(a) {
+    var S = 3, M = 40, W = 1080, LBL = 262, VAL = 74, ROW = 56;
+    var px = M + LBL, pw = W - M - VAL - px;
+
+    // The axis has to hold the longest cap, the slowest single time, and the
+    // longest work-plus-wait bar. Nothing beyond that, or every row is squashed
+    // into the left third for the sake of one outlier.
+    var capMax = IDS.reduce(function (m, id, k) { return Math.max(m, capOf(k)); }, 0);
+    var obsMax = a.rows.reduce(function (m, r) {
+      var q = r.pts.reduce(function (v, p) { return Math.max(v, p.secs); }, m);
+      return Math.max(q, (r.med || 0) + (r.medWait || 0));
+    }, 0);
+    var AX = Math.ceil(Math.max(capMax, obsMax) / 60) * 60 || 60;
+    var xOf = function (s) { return px + pw * Math.min(s, AX) / AX; };
+
+    var totMax = a.people.reduce(function (m, p) { return Math.max(m, p.time + p.wait); }, 1);
+
+    var TINT = { ok: [FIG.OK, FIG.OKBG], warn: [FIG.WARN, FIG.WARNBG],
+                 bad: [FIG.BAD, FIG.BADBG], none: [FIG.INK3, FIG.NONEBG] };
+    var HINTC = ["#2E7D57", "#C9A227", "#B8791C", "#8E2A1E"];
+
+    function paint(g, D) {
+      var F = function (s, x, y) { if (D) g.fillText(s, x, y); };
+      var R = function (x, y, w, h) { if (D) g.fillRect(x, y, w, h); };
+      var L = function (x1, y1, x2, y2) {
+        if (!D) return;
+        g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+      };
+      var dot = function (x, y, r, fill, stroke) {
+        if (!D) return;
+        g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
+        g.fillStyle = fill; g.fill();
+        g.strokeStyle = stroke; g.lineWidth = 1.5; g.stroke(); g.lineWidth = 1;
+      };
+      var head = function (y, s) {
+        if (D) { g.strokeStyle = FIG.RULE; }
+        L(M, y - 16, W - M, y - 16);
+        if (D) g.fillStyle = FIG.INK;
+        g.font = "700 15px" + FIG.UI;
+        F(s, M, y);
+        return y + 26;
+      };
+
+      if (D) g.fillStyle = FIG.INK;
+      g.font = "700 21px" + FIG.UI;
+      F(t("chartsTitle"), M, 46);
+      if (D) g.fillStyle = FIG.INK3;
+      g.font = "13px" + FIG.NUM;
+      F("n = " + a.n + "   ·   " + new Date().toISOString().slice(0, 10), M, 68);
+
+      // Panel 1: every recorded time as a dot, with the median marked and the
+      // task's own cap drawn where it falls on a shared axis.
+      var y = head(104, t("chTimes"));
+
+      if (D) { g.strokeStyle = "#E4E7E2"; g.fillStyle = FIG.INK3; }
+      g.font = "10px" + FIG.NUM;
+      var step = AX > 480 ? 120 : 60;
+      for (var s = 0; s <= AX; s += step) {
+        L(xOf(s), y - 4, xOf(s), y + a.rows.length * ROW - 6);
+        if (D) g.textAlign = "center";
+        F(mmss(s), xOf(s), y - 10);
+        if (D) g.textAlign = "left";
+      }
+
+      a.rows.forEach(function (r, k) {
+        var cy = y + k * ROW + 22;
+
+        if (D) g.fillStyle = FIG.INK;
+        g.font = "700 13px" + FIG.NUM;
+        F(r.id, M, cy + 4);
+        if (D) g.fillStyle = FIG.INK2;
+        g.font = "12px" + FIG.UI;
+        F(clip(g, t("task:" + r.id + "_name"), LBL - 40), M + 30, cy + 4);
+
+        if (D) g.strokeStyle = FIG.RULE;
+        L(px, cy, xOf(capOf(k)), cy);
+
+        // the cap, which is the ceiling a timeout is measured against
+        if (D) { g.strokeStyle = FIG.BAD; g.lineWidth = 2; }
+        L(xOf(capOf(k)), cy - 13, xOf(capOf(k)), cy + 13);
+        if (D) g.lineWidth = 1;
+
+        // The median sits below the dot band rather than through it, because a
+        // line drawn through five dots is a line five dots cover.
+        if (r.med !== null && D) {
+          var mx = xOf(r.med);
+          g.fillStyle = "#9AA39A";
+          g.fillRect(mx - 1, cy - 20, 2, 40);
+          g.fillStyle = FIG.INK2;
+          g.beginPath();
+          g.moveTo(mx, cy + 19); g.lineTo(mx - 5, cy + 27); g.lineTo(mx + 5, cy + 27);
+          g.closePath(); g.fill();
+        }
+
+        // Two people can land within a few seconds of each other, so anything
+        // that would overlap gets nudged off the line rather than hidden.
+        var used = [];
+        r.pts.slice().sort(function (p, q) { return p.secs - q.secs; }).forEach(function (p) {
+          var x = xOf(p.secs), lane = 0;
+          while (used.some(function (u) { return Math.abs(u.x - x) < 19 && u.lane === lane; })) {
+            lane = lane > 0 ? -lane : (-lane) + 1;
+            if (Math.abs(lane) > 1) break;
+          }
+          used.push({ x: x, lane: lane });
+          var cyy = cy + lane * 15, tint = TINT[p.cls];
+          dot(x, cyy, 8, tint[1], tint[0]);
+          if (D) { g.fillStyle = tint[0]; g.textAlign = "center"; }
+          g.font = "700 9px" + FIG.NUM;
+          F(String(a.names.indexOf(p.who) + 1), x, cyy + 3);
+          if (D) g.textAlign = "left";
+        });
+
+        if (D) { g.fillStyle = FIG.INK2; g.textAlign = "right"; }
+        g.font = "12px" + FIG.NUM;
+        F(r.med === null ? "—" : r.med + " s", W - M, cy - 1);
+        if (D) g.fillStyle = FIG.INK3;
+        g.font = "10px" + FIG.NUM;
+        F(r.avg === null ? "" : t("chMeanShort", { s: r.avg }), W - M, cy + 12);
+        if (D) g.textAlign = "left";
+      });
+
+      y += a.rows.length * ROW + 8;
+      if (D) g.fillStyle = FIG.INK3;
+      g.font = "11px" + FIG.UI;
+      F(t("chTimesKey"), M, y);
+      y += 34;
+
+      // Panel 2: how much of the elapsed time was the person, and how much
+      // was the model generating.
+      y = head(y, t("chWait"));
+      a.rows.forEach(function (r, k) {
+        var by = y + k * 30;
+        if (D) g.fillStyle = FIG.INK;
+        g.font = "700 12px" + FIG.NUM;
+        F(r.id, M, by + 14);
+        if (D) g.fillStyle = FIG.INK2;
+        g.font = "12px" + FIG.UI;
+        F(clip(g, t("task:" + r.id + "_name"), LBL - 40), M + 30, by + 14);
+
+        var w1 = r.med === null ? 0 : xOf(r.med) - px;
+        var w2 = r.medWait === null ? 0 : (pw * Math.min(r.medWait, AX) / AX);
+        if (D) g.fillStyle = "#3E7F5E";
+        R(px, by + 4, w1, 15);
+        if (D) g.fillStyle = "#C9A227";
+        R(px + w1, by + 4, w2, 15);
+
+        if (D) { g.fillStyle = FIG.INK2; g.textAlign = "right"; }
+        g.font = "11px" + FIG.NUM;
+        F(r.medWait === null ? "—" : "+" + r.medWait + " s", W - M, by + 15);
+        if (D) g.textAlign = "left";
+      });
+      y += a.rows.length * 30 + 8;
+      [["#3E7F5E", t("chWork")], ["#C9A227", t("chWaiting")]].forEach(function (l, i) {
+        var x = M + i * 170;
+        if (D) g.fillStyle = l[0];
+        R(x, y - 9, 11, 11);
+        if (D) g.fillStyle = FIG.INK2;
+        g.font = "12px" + FIG.UI;
+        F(l[1], x + 17, y);
+      });
+      y += 34;
+
+      // Panel 3: the hint ladder itself, which the three-way outcome flattens.
+      y = head(y, t("chHints"));
+      a.rows.forEach(function (r, k) {
+        var by = y + k * 28, bx = px, bw = pw * 0.62;
+        if (D) g.fillStyle = FIG.INK;
+        g.font = "700 12px" + FIG.NUM;
+        F(r.id, M, by + 13);
+        if (D) g.fillStyle = FIG.INK2;
+        g.font = "12px" + FIG.UI;
+        F(clip(g, t("task:" + r.id + "_name"), LBL - 40), M + 30, by + 13);
+
+        if (D) g.fillStyle = FIG.SUNK;
+        R(bx, by + 3, bw, 14);
+        [0, 1, 2, 3].forEach(function (lv) {
+          var c = r.hintN[lv];
+          if (!c) return;
+          var w = bw * c / a.n;
+          if (D) g.fillStyle = HINTC[lv];
+          R(bx, by + 3, w, 14);
+          if (D) { g.fillStyle = "#FFFFFF"; g.textAlign = "center"; }
+          g.font = "700 10px" + FIG.NUM;
+          if (w > 14) F("L" + lv, bx + w / 2, by + 14);
+          if (D) g.textAlign = "left";
+          bx += w;
+        });
+        if (D) g.fillStyle = FIG.INK3;
+        g.font = "11px" + FIG.NUM;
+        F([r.hintN[0], r.hintN[1], r.hintN[2], r.hintN[3]].join(" · ") +
+          (r.none ? "   (" + r.none + " " + t("rawNone") + ")" : ""), px + bw + 14, by + 14);
+      });
+      y += a.rows.length * 28 + 8;
+      if (D) g.fillStyle = FIG.INK3;
+      g.font = "11px" + FIG.UI;
+      F(t("chHintsKey"), M, y);
+      y += 34;
+
+      // Panel 4: whether one person is carrying the spread.
+      y = head(y, t("chPeople"));
+      a.people.forEach(function (p, i) {
+        var by = y + i * 30, tot = p.time + p.wait;
+        if (D) g.fillStyle = FIG.INK;
+        g.font = "700 12px" + FIG.NUM;
+        F("P" + (i + 1), M, by + 14);
+        if (D) g.fillStyle = FIG.INK3;
+        g.font = "11px" + FIG.UI;
+        F(t("chDone", { k: p.recorded, n: IDS.length }), M + 34, by + 14);
+        // The mix rides in the label column. Put it at the end of the bar and a
+        // full-length bar walks it straight into the total.
+        if (D) g.fillStyle = FIG.INK3;
+        g.font = "11px" + FIG.NUM;
+        F(p.mix.ok + " / " + p.mix.warn + " / " + p.mix.bad, M + 108, by + 14);
+
+        var bw = pw * (p.time / totMax), ww = pw * (p.wait / totMax);
+        if (D) g.fillStyle = "#3E7F5E";
+        R(px, by + 4, bw, 15);
+        if (D) g.fillStyle = "#C9A227";
+        R(px + bw, by + 4, ww, 15);
+
+        if (D) { g.fillStyle = FIG.INK2; g.textAlign = "right"; }
+        g.font = "12px" + FIG.NUM;
+        F(mmss(tot), W - M, by + 15);
+        if (D) g.textAlign = "left";
+      });
+      y += a.people.length * 30 + 12;
+
+      if (D) { g.strokeStyle = FIG.RULE; }
+      L(M, y - 4, W - M, y - 4);
+      y += 14;
+      if (D) g.fillStyle = FIG.INK3;
+      g.font = "11px" + FIG.UI;
+      wrapLines(g, t("chartsNote"), W - 2 * M).forEach(function (l) { F(l, M, y); y += 15; });
+
+      return y + 14;
+    }
+
+    var H = paint(document.createElement("canvas").getContext("2d"), false);
+    var c = document.createElement("canvas");
+    c.width = W * S; c.height = H * S;
+    var g = c.getContext("2d");
+    g.scale(S, S);
+    g.fillStyle = "#FFFFFF"; g.fillRect(0, 0, W, H);
+    paint(g, true);
+
+    shoot(c, "charts");
+  }
+
   function markdown(a) {
     var L = [];
     L.push(t("ui:expCap1", { n: a.n }));
@@ -941,7 +1217,24 @@
     L.push(t("ui:expRange"));
     a.rows.forEach(function (r) {
       if (r.min === null) return;
-      L.push("- " + r.id + ": " + r.min + " s to " + r.max + " s");
+      L.push(t("ui:expSpreadRow", { id: r.id, med: r.med, mean: r.avg,
+                                    min: r.min, max: r.max, k: r.k, n: a.n }));
+    });
+    L.push("");
+    L.push(t("ui:expStatsNote"));
+    L.push("");
+    L.push(t("ui:expWaitH"));
+    a.rows.forEach(function (r) {
+      if (r.medWait === null) return;
+      L.push(t("ui:expWaitRow", { id: r.id, med: r.medWait, mean: r.avgWait,
+                                  max: r.maxWait, k: r.waits.length }));
+    });
+    L.push("");
+    L.push(t("ui:expPeopleH"));
+    a.people.forEach(function (p, i) {
+      L.push(t("ui:expPeopleRow", { p: "P" + (i + 1), done: p.recorded, all: IDS.length,
+                                    time: mmss(p.time), wait: mmss(p.wait), wrong: p.wrong,
+                                    ok: p.mix.ok, hint: p.mix.warn, fail: p.mix.bad }));
     });
     L.push("");
     L.push(t("ui:expParticipants") + " " +

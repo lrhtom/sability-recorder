@@ -54,7 +54,8 @@ The name is a local label only. It becomes P1 to P5 before the data reaches the 
 The **Totals** screen reads every saved session and, per task, reports:
 
 - **Independent / With hint / Failed** as counts out of n, never as percentages. Five participants give 20% granularity; a percentage would imply precision that is not there.
-- **Median time on task**, not the mean. With five values, one slow participant drags a mean to a place nobody actually sat.
+- **Median time on task**, with the mean beside it rather than instead of it. With five values, one slow participant drags a mean to a place nobody actually sat, so the median leads and the mean is there to be checked against. Where the two pull apart, that gap is itself the finding: T3 above has a median of 95 s and a mean of 138 s, and the whole difference is one participant timing out.
+- **No standard deviation and no confidence interval.** Both are computable from five numbers and neither is defensible from five people. Reporting them would claim a precision the design cannot carry, and the viva question that follows is not one worth inviting.
 - **Wrong turns**, summed across participants, as a blunt indicator of where people thrash.
 - **Verbatim quotes grouped by task**, which is the raw material for the three-to-five issue themes that go alongside the table.
 
@@ -152,17 +153,20 @@ It reads every session in `localStorage` and reports:
 
 ### Downloads
 
-Three files, and they answer different questions.
+Four files, and they answer different questions.
 
 | File | Holds | Goes |
 |---|---|---|
 | `usability-summary-<stamp>.png` | the aggregate: a stacked bar per task, median time, median wait, wrong turns | the results section |
+| `usability-charts-<stamp>.png` | four panels: every time as a dot against the cap, working against waiting, the hint ladder, and per-participant totals | the results section, beside the table |
 | `usability-observations-<stamp>.png` | every observation, one cell each, plus every quote and every debrief answer | the appendix |
 | `usability-records-<stamp>.json` | the raw records, names included | the backup, and nowhere else |
 
 Both figures are **drawn rather than screenshotted**, at three times scale, always on a light ground whatever theme the viewer is using, because they end up in a document rather than on a screen. Text follows the interface language.
 
 **The summary figure is the claim. The observations figure is the material behind it**, which is what makes the claim checkable by someone who was not in the room. A table that reports "3 of 5 independent" without showing which three, how long each took and what they said is asking to be taken on trust.
+
+The charts figure sits between the two. Its first panel plots **every recorded time as a dot** on a shared axis, coloured by outcome and numbered by participant, with the median marked and each task's cap drawn where it falls. At five participants a bar of averages would hide the only thing worth looking at, which is who sat where; a dot plot cannot hide it. The second panel splits the elapsed time into working and waiting on the model, which is the difference between a slow interface and a slow model. The third opens the hint ladder back up into L0 to L3, since the three-way outcome flattens L1 and L2 together. The fourth totals each session, which is how an outlier participant becomes visible as an outlier rather than as a pattern.
 
 The observations figure is a participant-by-task grid. Each cell carries the time on task, how the attempt ended, then wrong turns and time spent waiting on a model, tinted by outcome so the trouble spots surface before anything is read. The task's cap sits under its name, which is what a `fail: cap` is a failure against. A column total closes the grid, then the verbatim quotes grouped by task, then the debrief answers grouped by question.
 
