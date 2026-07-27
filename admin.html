@@ -72,6 +72,7 @@
   function waitOf(x) { return x.waiting ? (x.wait || 0) + Math.floor((Date.now() - x.waitStartedAt) / 1000) : (x.wait || 0); }
   function outcomeOf(x, i) {
     if (secsOf(x) >= capOf(i)) return "failed";
+    if (x.correct === false) return "failed";
     if (x.hint === 3) return "failed";
     if (x.hint === 1 || x.hint === 2) return "hint";
     if (x.hint === 0) return "independent";
@@ -81,6 +82,7 @@
   // only matters when reading one session rather than aggregating.
   function outcomeDetail(x, i) {
     if (secsOf(x) >= capOf(i)) return { cls:"bad",  label:t("ui:outFailTimeout") };
+    if (x.correct === false) return { cls:"bad",  label:t("ui:outFailWrong") };
     if (x.hint === 3)       return { cls:"bad",  label:t("ui:outFailDemo") };
     if (x.hint === 1 || x.hint === 2) return { cls:"warn", label:t("ui:outWithHint") };
     if (x.hint === 0)       return { cls:"ok",   label:t("ui:outIndependent") };
@@ -120,12 +122,17 @@
       seen[o.name] = 1;
       found.push({
         name: String(o.name), date: String(o.date || ""),
-        tasks: IDS.map(function (id, i) {
-          var s = o.tasks[i] || {};
-          return { secs: Number(s.secs) || 0, running: false, startedAt: 0,
+        tasks: IDS.map(function (id, k) {
+          var s = o.tasks[k] || {};
+          var hint = (s.hint === 0 || s.hint === 1 || s.hint === 2 || s.hint === 3) ? s.hint : null;
+          var secs = Number(s.secs) || 0;
+          // An imported record can state a failure the hint level alone cannot
+          // express, so honour it rather than silently recomputing it away.
+          var correct = s.correct !== false;
+          if (correct && /fail/i.test(String(s.outcome || "")) && hint !== 3 && secs < CAPS[IDS[k]]) correct = false;
+          return { secs: secs, running: false, startedAt: 0,
                    wait: Number(s.wait) || 0, waiting: false, waitStartedAt: 0,
-                   wrong: Number(s.wrong) || 0,
-                   hint: (s.hint === 0 || s.hint === 1 || s.hint === 2 || s.hint === 3) ? s.hint : null,
+                   wrong: Number(s.wrong) || 0, hint: hint, correct: correct,
                    quote: String(s.quote || "") };
         }),
         debrief: {
@@ -178,7 +185,7 @@
         else if (o === "failed") fail++;
         else { none++; return; }
         times.push(secsOf(x));
-        if (AI_WAIT[id]) waits.push(waitOf(x));
+        if (waitOf(x)) waits.push(waitOf(x));
         wrong += x.wrong;
         if ((x.quote || "").trim()) quotes.push({ who: n, text: x.quote.trim() });
       });
@@ -300,7 +307,7 @@
             esc(t("task:" + id + "_name")) + '</span></td>' +
           '<td class="oc-' + o.cls + '">' + o.label + '</td>' +
           '<td>' + (x.hint === null && secsOf(x) === 0 ? "—" : mmss(secsOf(x))) + '</td>' +
-          '<td>' + (AI_WAIT[id] ? mmss(waitOf(x)) : "—") + '</td>' +
+          '<td>' + (waitOf(x) ? mmss(waitOf(x)) : "—") + '</td>' +
           '<td>' + x.wrong + '</td>' +
           '<td>' + (x.hint === null ? "—" : "L" + x.hint) + '</td>' +
           '<td class="q">' + (esc((x.quote || "").trim()) || "—") + '</td></tr>';

@@ -55,6 +55,11 @@ window.__RES.zh = {
     outFailTimeout: "失败 · 超时",
     outFailDemo: "失败 · 需演示",
     outNotRecorded: "未记录",
+    outFailWrong: "失败 · 答错",
+    answerLabel: "答案对照成功判据",
+    answerHint: "一路顺畅但最后答错，仍然算失败",
+    answerRight: "对上了",
+    answerWrong: "答错",
 
     wrapTag: "收尾",
     wrapEyebrow: "口头回访 · 5 分钟",

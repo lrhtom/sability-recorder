@@ -56,6 +56,11 @@ window.__RES.en = {
     outFailTimeout: "Failed · timeout",
     outFailDemo: "Failed · demonstrated",
     outNotRecorded: "Not recorded",
+    outFailWrong: "Failed · wrong answer",
+    answerLabel: "Answer against the success criterion",
+    answerHint: "a smooth run that ends in the wrong answer is still a failure",
+    answerRight: "Matches",
+    answerWrong: "Wrong",
 
     wrapTag: "Wrap",
     wrapEyebrow: "Spoken debrief · 5 min",

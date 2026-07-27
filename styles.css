@@ -259,3 +259,5 @@ table.detail td.oc-none{color:var(--ink-3);}
 .wipeconfirm .yes{appearance:none;cursor:pointer;border:1px solid var(--bad);background:var(--bad);color:#FFFFFF;border-radius:3px;font-family:var(--f-ui);font-size:13px;font-weight:700;padding:8px 14px;}
 .wipeconfirm .no{appearance:none;cursor:pointer;background:none;border:0;color:var(--ink-3);font-family:var(--f-ui);font-size:13px;padding:8px 4px;text-decoration:underline;text-underline-offset:3px;}
 .wipeconfirm .yes:focus-visible,.wipeconfirm .no:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.seg.two{grid-template-columns:repeat(2,1fr);}
+.seg.two button[aria-pressed="true"][data-ok="0"]{background:var(--bad);border-color:var(--bad);}

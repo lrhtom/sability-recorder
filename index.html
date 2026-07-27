@@ -83,7 +83,7 @@
   function blank() {
     return {
       name: "", date: today(),
-      tasks: IDS.map(function () { return { secs:0, running:false, startedAt:0, wait:0, waiting:false, waitStartedAt:0, wrong:0, hint:null, quote:"" }; }),
+      tasks: IDS.map(function () { return { secs:0, running:false, startedAt:0, wait:0, waiting:false, waitStartedAt:0, wrong:0, hint:null, correct:true, quote:"" }; }),
       debrief: { stuck:"", useful:"", change:"" }
     };
   }
@@ -107,13 +107,16 @@
   }
   function outcome(x, i) {
     if (liveSecs(x) >= capOf(i === undefined ? s.tasks.indexOf(x) : i)) return { key:"failed", en:"failed (timeout)", k:"bad",  label:t("outFailTimeout") };
+    // A run can be smooth and still end in the wrong answer. The success criteria
+    // are about the answer, so this has to outrank the hint level.
+    if (x.correct === false)  return { key:"failed", en:"failed (wrong answer)", k:"bad", label:t("outFailWrong") };
     if (x.hint === 3)         return { key:"failed", en:"failed (demonstrated)", k:"bad", label:t("outFailDemo") };
     if (x.hint === 1 || x.hint === 2) return { key:"hint", en:"with hint", k:"warn", label:t("outWithHint") };
     if (x.hint === 0)         return { key:"independent", en:"independent", k:"ok", label:t("outIndependent") };
     return { key:"none", en:"not recorded", k:"none", label:t("outNotRecorded") };
   }
   function mmss(sec) { var m = Math.floor(sec/60), r = sec%60; return m + ":" + (r<10?"0":"") + r; }
-  function done(i) { var x = s.tasks[i]; return x.hint !== null || liveSecs(x) >= capOf(i); }
+  function done(i) { var x = s.tasks[i]; return x.hint !== null || x.correct === false || liveSecs(x) >= capOf(i); }
   function esc(x) { return String(x).replace(/[&<>"]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}); }
   function median(a) {
     if (!a.length) return null;
@@ -297,6 +300,13 @@
           '<div class="ladder">L1 <code>' + esc(t("script:L1")) + '</code><br>' +
             'L2 <code>' + esc(t("script:L2")) + '</code> ' + t("ladderNote") + '<br>' +
             t("ladderDemo") + '</div>' +
+          '<div class="field" style="border:0;padding-top:14px;margin-top:0">' +
+            '<p class="flabel">' + t("answerLabel") + ' <span class="hint">' + t("answerHint") + '</span></p>' +
+            '<div class="seg two" id="ansSeg">' +
+              '<button type="button" data-ok="1" aria-pressed="' + (x.correct !== false) + '"><span class="lv">' + t("answerRight") + '</span></button>' +
+              '<button type="button" data-ok="0" aria-pressed="' + (x.correct === false) + '"><span class="lv">' + t("answerWrong") + '</span></button>' +
+            '</div>' +
+          '</div>' +
           '<div style="margin-top:14px"><span class="chip ' + o.k + '">' + o.label + '</span></div>' +
           '<div class="over" id="over" data-on="' + (liveSecs(x) >= capOf(i) ? "1" : "0") + '">' + t("timeoutBanner", { cap: mmss(capOf(i)) }) + '</div>' +
         '</div>' +
@@ -312,6 +322,12 @@
       b.onclick = function () {
         var k = parseInt(b.getAttribute("data-hint"), 10);
         x.hint = (x.hint === k) ? null : k;
+        save(); renderTask(i); renderRail();
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#ansSeg button"), function (b) {
+      b.onclick = function () {
+        x.correct = b.getAttribute("data-ok") === "1";
         save(); renderTask(i); renderRail();
       };
     });
@@ -354,7 +370,7 @@
         else if (o.key === "failed") fail++;
         else { none++; return; }
         times.push(liveSecs(x));
-        if (AI_WAIT[id]) waits.push(liveWait(x));
+        if (liveWait(x)) waits.push(liveWait(x));
         wrong += x.wrong;
         if ((x.quote || "").trim()) quotes.push({ who: n, text: x.quote.trim() });
       });
@@ -453,7 +469,7 @@
     IDS.forEach(function (id, i) {
       var x = r.tasks[i], o = outcome(x, i);
       L.push("| " + id + " " + t("task:" + id + "_name") + " | " + o.label + " | " + liveSecs(x) + " s | " +
-             (AI_WAIT[id] ? liveWait(x) + " s" : "—") + " | " +
+             (liveWait(x) ? liveWait(x) + " s" : "—") + " | " +
              x.wrong + " | " + (x.hint === null ? "—" : "L" + x.hint) + " | " +
              ((x.quote || "").replace(/\n/g, " ").replace(/\|/g, "/") || "—") + " |");
     });
@@ -468,7 +484,7 @@
       name: r.name, date: r.date,
       tasks: IDS.map(function (id, i) {
         var x = r.tasks[i];
-        return { id:id, secs:liveSecs(x), wait:liveWait(x), wrong:x.wrong, hint:x.hint, outcome:outcome(x, i).en, quote:x.quote };
+        return { id:id, secs:liveSecs(x), wait:liveWait(x), wrong:x.wrong, hint:x.hint, correct:x.correct !== false, outcome:outcome(x, i).en, quote:x.quote };
       }),
       debrief: r.debrief
     }, null, 1));

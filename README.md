@@ -64,6 +64,12 @@ The exported Markdown is **always English**, whatever language the interface is 
 
 No skipping levels. Wait 30 seconds after each hint before deciding to escalate.
 
+### The answer still has to be right
+
+Each task card carries a two-state control for whether the answer matched the success criterion. A participant can move through a flow without a single hint, in good time, and still name the wrong dimension or read the wrong number back. The criteria are about the answer, so **wrong answer outranks hint level** and the outcome reads `Failed · wrong answer`.
+
+Without it the hint ladder alone would score that run as a clean independent success, which is the opposite of what happened. Imports honour a stated failure for the same reason, rather than recomputing it away.
+
 | Level | What the observer says | Recorded as |
 |---|---|---|
 | L0 | nothing | Independent |
