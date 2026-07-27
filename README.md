@@ -152,9 +152,21 @@ It reads every session in `localStorage` and reports:
 
 ### Downloads
 
-**JSON** hands back every stored record as a file, which is the backup worth taking after each session and the thing to keep alongside the write-up.
+Three files, and they answer different questions.
 
-**PNG** draws a figure rather than screenshotting the page: title, participant count, a stacked bar per task, and median time, median wait and wrong turns beside it. It renders at three times scale for print and always on a light ground, whatever theme the viewer is using, because the figure ends up in a document rather than on a screen. Text follows the interface language.
+| File | Holds | Goes |
+|---|---|---|
+| `usability-summary-<stamp>.png` | the aggregate: a stacked bar per task, median time, median wait, wrong turns | the results section |
+| `usability-observations-<stamp>.png` | every observation, one cell each, plus every quote and every debrief answer | the appendix |
+| `usability-records-<stamp>.json` | the raw records, names included | the backup, and nowhere else |
+
+Both figures are **drawn rather than screenshotted**, at three times scale, always on a light ground whatever theme the viewer is using, because they end up in a document rather than on a screen. Text follows the interface language.
+
+**The summary figure is the claim. The observations figure is the material behind it**, which is what makes the claim checkable by someone who was not in the room. A table that reports "3 of 5 independent" without showing which three, how long each took and what they said is asking to be taken on trust.
+
+The observations figure is a participant-by-task grid. Each cell carries the time on task, how the attempt ended, then wrong turns and time spent waiting on a model, tinted by outcome so the trouble spots surface before anything is read. The task's cap sits under its name, which is what a `fail: cap` is a failure against. A column total closes the grid, then the verbatim quotes grouped by task, then the debrief answers grouped by question.
+
+**Names never reach either figure.** Both carry P labels only, and the passage below the grid says so on the figure itself. The JSON is the exception: it holds the names, because it is the working backup rather than a deliverable. Convert to P labels before any of it reaches the submitted document, and do not paste it into an appendix as it stands.
 
 ### Importing from another device
 

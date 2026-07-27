@@ -451,6 +451,7 @@
         '<div class="rowbtns">' +
           '<button class="btn" type="button" id="cpMd">' + t("copyTable") + '</button>' +
           '<button class="btn ghost" type="button" id="dlPng">' + t("dlPng") + '</button>' +
+          '<button class="btn ghost" type="button" id="dlRaw">' + t("dlPngRaw") + '</button>' +
         '</div>' +
         '<div class="field"><p class="flabel">' + t("exportJson") + '</p>' +
           '<textarea class="out" id="jsOut" readonly style="min-height:150px">' + esc(JSON.stringify(a.all, null, 1)) + '</textarea>' +
@@ -465,8 +466,9 @@
     wireRows();
     wireCopy("cpMd", "mdOut", t("copyTable"));
     if (el("dlPng")) el("dlPng").onclick = function () { downloadPng(aggregate()); };
+    if (el("dlRaw")) el("dlRaw").onclick = function () { downloadRawPng(aggregate()); };
     if (el("dlJson")) el("dlJson").onclick = function () {
-      save(JSON.stringify(allRecords(), null, 1), "application/json", "json");
+      save(JSON.stringify(allRecords(), null, 1), "application/json", "records", "json");
     };
     wireCopy("cpJs", "jsOut", t("copyJson"));
   }
@@ -574,12 +576,57 @@
     var d = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; };
     return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes());
   }
-  function save(data, mime, ext) {
-    var blob = new Blob([data], { type: mime });
-    var url = URL.createObjectURL(blob), a2 = document.createElement("a");
-    a2.href = url; a2.download = "usability-" + stamp() + "." + ext;
+  function grab(url, kind, ext) {
+    var a2 = document.createElement("a");
+    a2.href = url; a2.download = "usability-" + kind + "-" + stamp() + "." + ext;
     document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  function save(data, mime, kind, ext) {
+    grab(URL.createObjectURL(new Blob([data], { type: mime })), kind, ext);
+  }
+  function shoot(c, kind) {
+    c.toBlob(function (b) { grab(URL.createObjectURL(b), kind, "png"); }, "image/png");
+  }
+
+  // One palette for both figures, so the two land in the document looking related.
+  var FIG = {
+    INK: "#14181A", INK2: "#4A5350", INK3: "#7C8582", RULE: "#CDD2CB", SUNK: "#E9EBE7",
+    OK: "#1E6B45", WARN: "#8A6212", BAD: "#8E2A1E",
+    OKBG: "#E3EFE7", WARNBG: "#F5EDD9", BADBG: "#F5E2DE", NONEBG: "#F0F2EE",
+    UI: ' "Helvetica Neue", Arial, "Microsoft YaHei", "PingFang SC", sans-serif',
+    NUM: ' Consolas, Menlo, monospace'
+  };
+
+  // A break can land between two CJK characters or at a space, which one regex
+  // cannot do without a lookbehind that older mobile Safari refuses to parse.
+  function pieces(s) {
+    var out = [], buf = "";
+    for (var i = 0; i < s.length; i++) {
+      var ch = s.charAt(i), cc = s.charCodeAt(i);
+      var cjk = (cc >= 0x2E80 && cc <= 0x9FFF) || (cc >= 0xFF00 && cc <= 0xFF60);
+      if (ch === " ") { if (buf) { out.push(buf); buf = ""; } out.push(" "); }
+      else if (cjk) { if (buf) { out.push(buf); buf = ""; } out.push(ch); }
+      else buf += ch;
+    }
+    if (buf) out.push(buf);
+    return out;
+  }
+  function wrapLines(g, s, maxw) {
+    var lines = [], line = "";
+    pieces(String(s)).forEach(function (p) {
+      if (!line && p === " ") return;
+      var test = line + p;
+      if (line && g.measureText(test).width > maxw) { lines.push(line); line = (p === " " ? "" : p); }
+      else line = test;
+    });
+    if (line) lines.push(line);
+    return lines.length ? lines : [""];
+  }
+  function clip(g, s, maxw) {
+    var out = String(s);
+    while (g.measureText(out).width > maxw && out.length > 2) out = out.slice(0, -2);
+    return out;
   }
 
   // Drawn rather than screenshotted, and always on a light ground, because the
@@ -592,10 +639,9 @@
     var g = c.getContext("2d");
     g.scale(S, S);
 
-    var INK = "#14181A", INK2 = "#4A5350", INK3 = "#7C8582", RULE = "#CDD2CB",
-        OK = "#1E6B45", WARN = "#8A6212", BAD = "#8E2A1E", SUNK = "#E9EBE7";
-    var UI = ' "Helvetica Neue", Arial, "Microsoft YaHei", "PingFang SC", sans-serif';
-    var NUM = ' Consolas, Menlo, monospace';
+    var INK = FIG.INK, INK2 = FIG.INK2, INK3 = FIG.INK3, RULE = FIG.RULE,
+        OK = FIG.OK, WARN = FIG.WARN, BAD = FIG.BAD, SUNK = FIG.SUNK;
+    var UI = FIG.UI, NUM = FIG.NUM;
 
     g.fillStyle = "#FFFFFF"; g.fillRect(0, 0, W, H);
 
@@ -663,23 +709,217 @@
       g.fillStyle = INK2; g.font = "12px" + UI; g.fillText(l[1], x + 16, fy);
     });
     g.fillStyle = INK3; g.font = "12px" + UI;
-    var note = t("pngNote"), maxw = right - M, line = "", ly = fy + 26;
-    // Wrapped without a lookbehind, which older mobile Safari cannot even parse.
-    var spaced = note.indexOf(" ") >= 0;
-    var units = spaced ? note.split(" ") : note.split(""), joiner = spaced ? " " : "";
-    units.forEach(function (w) {
-      var test = line ? line + joiner + w : w;
-      if (g.measureText(test).width > maxw) { g.fillText(line, M, ly); ly += 17; line = w; }
-      else line = test;
-    });
-    if (line) g.fillText(line, M, ly);
+    var ly = fy + 26;
+    wrapLines(g, t("pngNote"), right - M).forEach(function (l) { g.fillText(l, M, ly); ly += 17; });
 
-    c.toBlob(function (b) {
-      var url = URL.createObjectURL(b), a2 = document.createElement("a");
-      a2.href = url; a2.download = "usability-" + stamp() + ".png";
-      document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
-      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-    }, "image/png");
+    shoot(c, "summary");
+  }
+
+  // The companion to the summary: every observation as recorded, plus what each
+  // person said. The summary is the claim; this is the material behind it, which
+  // is what an appendix has to carry for the claim to be checkable.
+  function downloadRawPng(a) {
+    var S = 3, M = 40, LBL = 300, ROW = 62;
+    var CELL = Math.max(84, Math.min(150, Math.floor(630 / Math.max(a.n, 1))));
+    var W = Math.max(760, 2 * M + LBL + a.n * CELL);
+    var gridX = M + LBL, right = W - M;
+    var qx = M + 40, qw = right - qx;
+
+    var TINT = { ok: [FIG.OK, FIG.OKBG], warn: [FIG.WARN, FIG.WARNBG],
+                 bad: [FIG.BAD, FIG.BADBG], none: [FIG.INK3, FIG.NONEBG] };
+
+    // How a cell ended, in the few characters a cell can hold.
+    function shortOutcome(x, k) {
+      if (secsOf(x) >= capOf(k)) return t("rawFailCap");
+      if (x.correct === false) return t("rawFailAns");
+      if (x.hint === 3) return t("rawFailDemo");
+      if (x.hint === 1 || x.hint === 2) return t("rawHintN", { n: x.hint });
+      if (x.hint === 0) return t("rawOk");
+      return t("rawNone");
+    }
+
+    // Measured and painted by the same walk, so the canvas is never the wrong
+    // height for what goes on it.
+    function paint(g, D) {
+      var F = function (s, x, y) { if (D) g.fillText(s, x, y); };
+      var R = function (x, y, w, h) { if (D) g.fillRect(x, y, w, h); };
+      var L = function (x1, y1, x2, y2) {
+        if (!D) return;
+        g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+      };
+
+      if (D) { g.fillStyle = FIG.INK; }
+      g.font = "700 21px" + FIG.UI;
+      F(t("rawTitle"), M, 46);
+      if (D) g.fillStyle = FIG.INK3;
+      g.font = "13px" + FIG.NUM;
+      F("n = " + a.n + "   ·   " + new Date().toISOString().slice(0, 10), M, 68);
+
+      if (D) { g.strokeStyle = FIG.RULE; g.lineWidth = 1; }
+      L(M, 84, right, 84);
+
+      g.font = "11px" + FIG.NUM;
+      if (D) g.fillStyle = FIG.INK3;
+      F(t("ui:thTask").toUpperCase(), M, 106);
+      if (D) g.textAlign = "center";
+      a.people.forEach(function (p, j) { F("P" + (j + 1), gridX + j * CELL + CELL / 2, 106); });
+      if (D) g.textAlign = "left";
+
+      var top = 116;
+      a.rows.forEach(function (r, k) {
+        var y = top + k * ROW;
+        if (D) g.strokeStyle = FIG.RULE;
+        L(M, y + ROW - 1, right, y + ROW - 1);
+
+        if (D) g.fillStyle = FIG.INK;
+        g.font = "700 13px" + FIG.NUM;
+        F(r.id, M, y + 26);
+        if (D) g.fillStyle = FIG.INK2;
+        g.font = "13px" + FIG.UI;
+        F(clip(g, t("task:" + r.id + "_name"), LBL - 48), M + 34, y + 26);
+        if (D) g.fillStyle = FIG.INK3;
+        g.font = "11px" + FIG.NUM;
+        F("≤ " + mmss(capOf(k)), M + 34, y + 44);
+
+        a.names.forEach(function (nm, j) {
+          var x = gridX + j * CELL, cx = x + CELL / 2;
+          var task = a.all[nm].tasks[k], o = outcomeDetail(task, k), tint = TINT[o.cls];
+
+          if (D) g.fillStyle = tint[1];
+          R(x + 3, y + 5, CELL - 6, ROW - 12);
+
+          if (D) g.textAlign = "center";
+          if (D) g.fillStyle = tint[0];
+          g.font = "700 15px" + FIG.NUM;
+          F(task.hint === null && secsOf(task) === 0 ? "—" : mmss(secsOf(task)), cx, y + 26);
+
+          g.font = "10px" + FIG.UI;
+          F(clip(g, shortOutcome(task, k), CELL - 14), cx, y + 41);
+
+          var tags = [];
+          if (task.wrong) tags.push("×" + task.wrong);
+          if (waitOf(task)) tags.push(t("rawWaitTag", { s: waitOf(task) }));
+          if (D) g.fillStyle = FIG.INK3;
+          g.font = "10px" + FIG.NUM;
+          F(clip(g, tags.join("  "), CELL - 14), cx, y + 54);
+          if (D) g.textAlign = "left";
+        });
+      });
+
+      var y2 = top + a.rows.length * ROW + 22;
+      if (D) g.fillStyle = FIG.INK3;
+      g.font = "11px" + FIG.NUM;
+      F(t("rawTotal").toUpperCase(), M, y2);
+      if (D) { g.textAlign = "center"; g.fillStyle = FIG.INK2; }
+      g.font = "12px" + FIG.NUM;
+      a.people.forEach(function (p, j) { F(mmss(p.time), gridX + j * CELL + CELL / 2, y2); });
+      if (D) g.textAlign = "left";
+
+      y2 += 30;
+      [[FIG.OKBG, FIG.OK, t("ui:outIndependent")], [FIG.WARNBG, FIG.WARN, t("ui:outWithHint")],
+       [FIG.BADBG, FIG.BAD, t("ui:thFailed")], [FIG.NONEBG, FIG.INK3, t("ui:outNotRecorded")]]
+        .forEach(function (l, i) {
+          var x = M + i * 150;
+          // A sample of the cell rather than a block of ink, because the cells
+          // themselves are tinted.
+          if (D) {
+            g.fillStyle = l[0]; g.fillRect(x, y2 - 10, 13, 13);
+            g.strokeStyle = l[1]; g.lineWidth = 2; g.strokeRect(x + 1, y2 - 9, 11, 11);
+            g.lineWidth = 1; g.fillStyle = FIG.INK2;
+          }
+          g.font = "12px" + FIG.UI;
+          F(l[2], x + 19, y2);
+        });
+
+      y2 += 24;
+      if (D) g.fillStyle = FIG.INK3;
+      g.font = "12px" + FIG.UI;
+      wrapLines(g, t("rawCellNote"), right - M).forEach(function (l) { F(l, M, y2); y2 += 17; });
+
+      // What people said, kept next to the numbers rather than in a separate file.
+      var withQuotes = a.rows.filter(function (r) { return r.quotes.length; });
+      if (withQuotes.length) {
+        y2 += 20;
+        if (D) g.strokeStyle = FIG.RULE;
+        L(M, y2 - 14, right, y2 - 14);
+        if (D) g.fillStyle = FIG.INK;
+        g.font = "700 15px" + FIG.UI;
+        F(t("rawQuotes"), M, y2 + 6);
+        y2 += 30;
+
+        withQuotes.forEach(function (r) {
+          if (D) g.fillStyle = FIG.INK2;
+          g.font = "700 13px" + FIG.NUM;
+          F(r.id, M, y2);
+          g.font = "700 13px" + FIG.UI;
+          F(clip(g, t("task:" + r.id + "_name"), right - M - 40), M + 34, y2);
+          y2 += 20;
+          r.quotes.forEach(function (q) {
+            var pi = a.names.indexOf(q.who) + 1;
+            if (D) g.fillStyle = FIG.INK3;
+            g.font = "12px" + FIG.NUM;
+            F("P" + pi, M + 6, y2);
+            if (D) g.fillStyle = FIG.INK;
+            g.font = "13px" + FIG.UI;
+            wrapLines(g, q.text.replace(/\s+/g, " "), qw).forEach(function (l) { F(l, qx, y2); y2 += 18; });
+            y2 += 4;
+          });
+          y2 += 10;
+        });
+      }
+
+      var said = DEBRIEF_KEYS.filter(function (k) {
+        return a.names.some(function (n) { return (a.all[n].debrief[k] || "").trim(); });
+      });
+      if (said.length) {
+        y2 += 10;
+        if (D) g.strokeStyle = FIG.RULE;
+        L(M, y2 - 14, right, y2 - 14);
+        if (D) g.fillStyle = FIG.INK;
+        g.font = "700 15px" + FIG.UI;
+        F(t("rawDebrief"), M, y2 + 6);
+        y2 += 30;
+
+        said.forEach(function (k) {
+          if (D) g.fillStyle = FIG.INK2;
+          g.font = "700 13px" + FIG.UI;
+          wrapLines(g, t("task:debrief_" + k), right - M).forEach(function (l) { F(l, M, y2); y2 += 18; });
+          y2 += 4;
+          a.names.forEach(function (n, i) {
+            var v = (a.all[n].debrief[k] || "").replace(/\s+/g, " ").trim();
+            if (!v) return;
+            if (D) g.fillStyle = FIG.INK3;
+            g.font = "12px" + FIG.NUM;
+            F("P" + (i + 1), M + 6, y2);
+            if (D) g.fillStyle = FIG.INK;
+            g.font = "13px" + FIG.UI;
+            wrapLines(g, v, qw).forEach(function (l) { F(l, qx, y2); y2 += 18; });
+            y2 += 4;
+          });
+          y2 += 10;
+        });
+      }
+
+      y2 += 14;
+      if (D) g.strokeStyle = FIG.RULE;
+      L(M, y2 - 14, right, y2 - 14);
+      if (D) g.fillStyle = FIG.INK3;
+      g.font = "11px" + FIG.UI;
+      wrapLines(g, t("rawNoteFoot"), right - M).forEach(function (l) { F(l, M, y2); y2 += 15; });
+
+      return y2 + 14;
+    }
+
+    var H = paint(document.createElement("canvas").getContext("2d"), false);
+    var c = document.createElement("canvas");
+    c.width = W * S; c.height = H * S;
+    var g = c.getContext("2d");
+    g.scale(S, S);
+    g.fillStyle = "#FFFFFF"; g.fillRect(0, 0, W, H);
+    g.textBaseline = "alphabetic";
+    paint(g, true);
+
+    shoot(c, "observations");
   }
 
   function markdown(a) {
