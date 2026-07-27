@@ -35,7 +35,6 @@
   var PASS_SHA256 = "ac572d7cfde6e1429c979d6aeef6d0be9bde5b7e39db2c61663761be38d9cd7e";
 
   var KEY = "usability_recorder_v1";
-  var MERGE_KEY = "usability_recorder_merged_v1";
   var LANG_KEY = "usability_recorder_lang";
   var UNLOCK_KEY = "usability_recorder_admin";
   var CAPS = { T1: 300, T2: 600, T3: 300, T4: 300, T5: 360 };
@@ -99,24 +98,15 @@
   }
 
   // ---------- data ----------
-  // Records from other devices are stored separately so a merge never overwrites
-  // the sessions actually recorded on this one.
-  function allRecords() {
-    var local = read(KEY), extra = read(MERGE_KEY), out = {};
-    Object.keys(extra).forEach(function (k) { out[k] = extra[k]; });
-    Object.keys(local).forEach(function (k) { out[k] = local[k]; });
-    return out;
-  }
-  function counts() {
-    return { local: Object.keys(read(KEY)).length, merged: Object.keys(read(MERGE_KEY)).length };
-  }
-  function sourceOf(name) { return read(KEY)[name] ? KEY : (read(MERGE_KEY)[name] ? MERGE_KEY : null); }
+  // One store. An imported record with a name already held replaces that record
+  // outright; nothing is ever merged field by field.
+  function allRecords() { return read(KEY); }
+  function writeAll(bag) { try { localStorage.setItem(KEY, JSON.stringify(bag)); } catch (e) {} }
   function removeRecord(name) {
-    var store = sourceOf(name);
-    if (!store) return false;
-    var bag = read(store);
+    var bag = read(KEY);
+    if (!bag[name]) return false;
     delete bag[name];
-    try { localStorage.setItem(store, JSON.stringify(bag)); } catch (e) { return false; }
+    writeAll(bag);
     return true;
   }
 
@@ -256,21 +246,18 @@
   }
 
   function renderBoard() {
-    var c = counts(), a = aggregate();
+    var a = aggregate();
 
     var sources =
       '<div class="card">' +
         '<p class="eyebrow"><span class="tag">' + t("sub") + '</span> ' + t("sourcesHeading") + '</p>' +
-        '<div class="srcgrid">' +
-          '<div class="srccard"><div class="n">' + c.local + '</div><div class="cap">' + t("onThisDevice") + '</div></div>' +
-          '<div class="srccard"><div class="n">' + c.merged + '</div><div class="cap">' + t("merged") + '</div></div>' +
-        '</div>' +
+        '<div class="srccard" style="max-width:200px"><div class="n">' + Object.keys(read(KEY)).length + '</div>' +
+          '<div class="cap">' + t("onThisDevice") + '</div></div>' +
         '<div class="field"><p class="flabel">' + t("pasteHeading") + '</p>' +
           '<p class="meta">' + t("pasteNote") + '</p>' +
           '<textarea class="pastebox" id="paste" placeholder="' + esc(t("pastePlaceholder")) + '"></textarea>' +
-          '<div class="rowbtns">' +
-            '<button class="btn" type="button" id="doMerge">' + t("mergeBtn") + '</button>' +
-            (c.merged ? '<button class="btn ghost" type="button" id="clrMerge">' + t("clearMerged") + '</button>' : '') +
+          '<div class="rowbtns" id="importRow">' +
+            '<button class="btn" type="button" id="doImport">' + t("importBtn") + '</button>' +
           '</div>' +
           '<p class="status" id="mstat"></p>' +
         '</div>' +
@@ -319,9 +306,8 @@
           '<td class="q">' + (esc((x.quote || "").trim()) || "—") + '</td></tr>';
       }).join("");
 
-      var tag = sourceOf(p.name) === MERGE_KEY ? '<span class="srctag">' + t("merged") + '</span>' : '';
       return '<tr><td><button class="rowtoggle" type="button" data-row="' + i + '" aria-expanded="false">' +
-          '<span class="caret">▶</span>' + esc(p.name) + '</button>' + tag + '</td>' +
+          '<span class="caret">▶</span>' + esc(p.name) + '</button></td>' +
         '<td class="pid">P' + (i + 1) + '</td>' +
         '<td>' + p.recorded + ' / 5</td><td>' + mmss(p.time) + '</td><td>' + p.wrong + '</td>' +
         '<td class="act" id="act' + i + '"><button class="delbtn" type="button" data-del="' + esc(p.name) + '" data-i="' + i + '">' + t("ui:del") + '</button></td></tr>' +
@@ -434,7 +420,7 @@
         '<button class="yes" type="button">' + t("confirmAllYes") + '</button>' +
         '<button class="no" type="button">' + t("cancel") + '</button></span>';
       zone.querySelector(".yes").onclick = function () {
-        try { localStorage.removeItem(KEY); localStorage.removeItem(MERGE_KEY); } catch (e) {}
+        try { localStorage.removeItem(KEY); } catch (e) {}
         render();
       };
       zone.querySelector(".no").onclick = function () { render(); };
@@ -467,22 +453,36 @@
   }
 
   function wireSources() {
-    var m = el("doMerge");
-    if (m) m.onclick = function () {
-      var found = parsePasted(el("paste").value || "");
-      var st = el("mstat");
-      if (!found.length) { st.className = "status bad"; st.textContent = t("mergedNone"); return; }
-      var extra = read(MERGE_KEY);
-      found.forEach(function (r) { extra[r.name] = r; });
-      try { localStorage.setItem(MERGE_KEY, JSON.stringify(extra)); } catch (e) {}
-      st.className = "status good";
-      st.textContent = t("mergedOk", { count: found.length });
-      setTimeout(render, 700);
-    };
-    var cl = el("clrMerge");
-    if (cl) cl.onclick = function () {
-      try { localStorage.removeItem(MERGE_KEY); } catch (e) {}
-      render();
+    var b = el("doImport");
+    if (!b) return;
+    b.onclick = function () {
+      var found = parsePasted(el("paste").value || ""), st = el("mstat");
+      if (!found.length) { st.className = "status bad"; st.textContent = t("importedNone"); return; }
+
+      var bag = read(KEY);
+      var clash = found.filter(function (r) { return bag[r.name]; }).map(function (r) { return r.name; });
+
+      var commit = function () {
+        var b2 = read(KEY);
+        found.forEach(function (r) { b2[r.name] = r; });
+        writeAll(b2);
+        var msg = clash.length
+          ? t("importedReplaced", { count: found.length, n: clash.length })
+          : t("importedOk", { count: found.length });
+        render();
+        var st2 = el("mstat");
+        if (st2) { st2.className = "status good"; st2.textContent = msg; }
+      };
+
+      if (!clash.length) { commit(); return; }
+
+      st.className = "status bad";
+      st.textContent = t("willOverwrite", { names: clash.join(", ") });
+      var row = el("importRow");
+      row.innerHTML = '<button class="btn" type="button" id="okOver">' + t("importYes") + '</button>' +
+        '<button class="btn ghost" type="button" id="noOver">' + t("cancel") + '</button>';
+      el("okOver").onclick = commit;
+      el("noOver").onclick = function () { render(); };
     };
   }
 

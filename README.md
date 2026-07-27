@@ -34,6 +34,8 @@ Everything is written to `localStorage` under two keys:
 | `usability_recorder_v1` | every session, as `{ "<name>": { name, date, tasks[5], debrief{} } }` |
 | `usability_recorder_lang` | `en` or `zh` |
 
+The name is the key, which is what makes an import with a matching name a replacement rather than a second copy.
+
 Each task entry is `{ secs, running, startedAt, wrong, hint, quote }`. Writes happen on every keystroke, every tally tap and every timer stop, so nothing is lost to a refresh or a locked phone.
 
 There is no backend, no analytics, no telemetry and no `fetch` anywhere in the source. Nothing leaves the device.
@@ -134,11 +136,13 @@ It reads every session in `localStorage` and reports:
 - verbatim quotes grouped by task, and debrief answers grouped by question
 - the finished Table 7.10 Markdown and the raw JSON, both ready to copy
 
-### Merging devices
+### Importing from another device
 
-Sessions live in the browser that recorded them, so a phone and a laptop hold separate sets. The analysis page takes a paste of another device's export and merges it in. It accepts the whole Markdown export, a bare JSON object, or several of either.
+Sessions live in the browser that recorded them, so a phone and a laptop hold separate sets. The analysis page takes a paste of another device's export. It accepts the whole Markdown export, a bare JSON object, or several of either in one go.
 
-Merged records are kept under a **separate** key (`usability_recorder_merged_v1`) from sessions recorded on this device (`usability_recorder_v1`), and local records win on a name collision. A merge can therefore never overwrite a session this device actually recorded, and **Clear merged** removes only the imported ones. Rows that came from a merge carry a tag, so it is always visible which store a row belongs to.
+**A record whose name is already stored is replaced outright.** Nothing is merged field by field, because a half-merged session would be a session that never happened. Re-importing a corrected export is therefore also how a session gets fixed.
+
+Because replacing loses what was there, an import that would overwrite something names the affected records and waits for a second click. An import that only adds new names goes straight through.
 
 ### Deleting one participant
 
